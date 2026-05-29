@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscador Académico — Mendeley</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f4f0; color: #1a1a1a; font-size: 14px; }
+  .app { max-width: 820px; margin: 0 auto; padding: 20px 16px; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  h1 .sub { font-size: 13px; font-weight: 400; color: #666; }
+
+  /* Token zone */
+  .token-zone { border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #e0ddd6; background: #fff; }
+  .token-zone.ok { background: #f0faf4; border-color: #6fcf97; }
+  .token-zone.err { background: #fff5f5; border-color: #f5a0a0; }
+  .token-status { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .token-status.ok { color: #1a7a3e; }
+  .token-status.err { color: #c0392b; }
+  .token-status.idle { color: #444; }
+  .token-hint { font-size: 12px; color: #666; margin-bottom: 10px; line-height: 1.6; }
+  .token-hint a { color: #2563eb; }
+  .token-row { display: flex; gap: 8px; }
+  .token-row input { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .token-row input:focus { outline: none; border-color: #2563eb; }
+
+  /* Buttons */
+  .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.12s; font-family: inherit; }
+  .btn:hover:not(:disabled) { background: #f0eeea; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .btn-primary:hover:not(:disabled) { background: #333; }
+  .btn-sm { padding: 4px 9px; font-size: 11px; }
+  .btn-green { background: #f0faf4; color: #1a7a3e; border-color: #6fcf97; }
+  .btn-green:hover:not(:disabled) { background: #e0f5e9; }
+  .btn-err { color: #c0392b; border-color: #f5a0a0; }
+
+  /* Search */
+  .search-box { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #e0ddd6; }
+  .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .search-row input { flex: 1; padding: 9px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; font-family: inherit; }
+  .search-row input:focus { outline: none; border-color: #2563eb; }
+  .search-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .search-filters input[type=number] { width: 100px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 12px; font-family: inherit; }
+  .search-filters label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #666; cursor: pointer; }
+
+  /* Chips */
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip { padding: 4px 11px; border-radius: 20px; border: 1px solid #ddd; background: transparent; font-size: 11px; color: #666; cursor: pointer; transition: all 0.12s; font-family: inherit; }
+  .chip:hover { background: #f0eeea; }
+  .chip.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; font-weight: 500; }
+
+  /* Results */
+  .results { display: flex; flex-direction: column; gap: 10px; }
+  .card { background: #fff; border: 1px solid #e0ddd6; border-radius: 12px; padding: 12px 14px; transition: border-color 0.15s; }
+  .card.saved { border-color: #6fcf97; }
+  .card-title { font-size: 13px; font-weight: 600; color: #2563eb; line-height: 1.4; margin-bottom: 4px; text-decoration: none; display: block; }
+  .card-title:hover { text-decoration: underline; }
+  .card-meta { font-size: 11px; color: #888; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-orange { background: #fef3c7; color: #92400e; }
+  .badge-gray { background: #f1f0ec; color: #555; }
+  .abstract { font-size: 11px; color: #666; line-height: 1.7; margin-bottom: 8px; display: none; }
+  .abstract.show { display: block; }
+  .card-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  .btn-cite { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+
+  /* Empty / loading */
+  .empty { text-align: center; padding: 48px 0; color: #999; }
+  .empty svg { margin-bottom: 12px; opacity: 0.4; }
+  .loading { text-align: center; padding: 32px; color: #888; font-size: 13px; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { display: inline-block; animation: spin 0.7s linear infinite; }
+
+  .notice { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #92400e; margin-bottom: 12px; line-height: 1.6; }
+  .notice a { color: #92400e; font-weight: 600; }
+
+  /* Upload box */
+  .upload-box { background: #fff; border: 1px solid #e0ddd6; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .upload-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .upload-box .hint { font-size: 11px; color: #888; margin-bottom: 10px; line-height: 1.5; }
+  .upload-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .upload-row input[type=file] { flex: 1; min-width: 200px; padding: 6px; border: 1px dashed #ccc; border-radius: 8px; font-size: 12px; background: #fafafa; }
+  .upload-status { margin-top: 10px; font-size: 12px; color: #444; line-height: 1.6; }
+  .upload-status.err { color: #c0392b; }
+  .upload-status .stat-row { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+  .stat { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .stat.found { background: #dcfce7; color: #166534; }
+  .stat.miss { background: #fee2e2; color: #991b1b; }
+  .stat.total { background: #f1f0ec; color: #555; }
+  .miss-list { background: #fff5f5; border: 1px solid #f5a0a0; border-radius: 8px; padding: 8px 12px; margin-top: 8px; max-height: 200px; overflow-y: auto; }
+  .miss-list .miss-item { font-size: 11px; color: #991b1b; padding: 2px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .diag { margin-top: 10px; border: 1px solid #e0ddd6; border-radius: 8px; max-height: 380px; overflow-y: auto; background: #fafafa; }
+  .diag-head { padding: 8px 12px; background: #f0eeea; font-size: 12px; font-weight: 600; position: sticky; top: 0; }
+  .diag-row { padding: 8px 12px; border-top: 1px solid #e0ddd6; font-size: 11px; }
+  .diag-row.matched { background: #f0faf4; }
+  .diag-row.missed { background: #fff5f5; }
+  .diag-cite { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; margin-bottom: 4px; }
+  .diag-status { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-right: 6px; }
+  .diag-status.ok { background: #dcfce7; color: #166534; }
+  .diag-status.bad { background: #fee2e2; color: #991b1b; }
+  .diag-hit { color: #166534; font-size: 11px; margin-left: 4px; }
+  .diag-candidates { margin-top: 4px; padding-left: 12px; }
+  .diag-cand { color: #444; font-size: 10px; padding: 2px 0; }
+  .diag-cand b { color: #1a7a3e; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <h1>🔬 Buscador Académico — Mendeley <span class="sub">APA 7</span></h1>
+  <p style="font-size:12px;color:#888;margin-bottom:16px;margin-top:2px">OpenAlex · Scopus · WoS · MDPI · F1000 · DOAJ</p>
+
+  <div class="notice">
+    ⚡ <strong>Cómo usar:</strong> Inicia sesión con tu cuenta de Mendeley, busca artículos, guárdalos en tu biblioteca y sube tu .docx para vincular las citas automáticamente con el plugin Mendeley Cite.
+  </div>
+
+  <!-- AUTH -->
+  <div class="token-zone" id="token-zone"></div>
+
+  <!-- SEARCH -->
+  <div class="search-box">
+    <div class="search-row">
+      <input type="text" id="query" placeholder="Palabras clave, título, autor, DOI…">
+      <button class="btn btn-primary" id="btn-search">Buscar</button>
+    </div>
+    <div class="search-filters">
+      <input type="number" id="year-from" placeholder="Desde año" min="1900" max="2099">
+      <span style="color:#aaa">—</span>
+      <input type="number" id="year-to" placeholder="Hasta año" min="1900" max="2099">
+      <label><input type="checkbox" id="only-oa"> Solo acceso abierto</label>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="upload-box" id="upload-box" style="display:none">
+    <h3>📤 Cita automática (campos Mendeley Cite)</h3>
+    <p class="hint">Sube tu <strong>.docx</strong>. Detectaré citas tipo <code>(Autor, 2024)</code> o <code>Autor et al. (2024)</code>, las cruzaré con tu biblioteca de Mendeley, y envolveré cada coincidencia en un <strong>campo Mendeley Cite</strong> (sombreado gris). Al abrir el .docx en Word con el plugin <strong>Mendeley Cite</strong> instalado, click en <em>"Insert Bibliography"</em> y se genera la lista de referencias automáticamente. Las que no encuentre en tu biblioteca quedarán marcadas en rojo. <strong>Tu formato original (bold, encabezados, listas, tablas) se preserva.</strong></p>
+    <div class="upload-row">
+      <input type="file" id="doc-upload" accept=".docx">
+      <button class="btn btn-primary" id="btn-process" disabled>Procesar documento</button>
+    </div>
+    <div class="upload-status" id="upload-status"></div>
+  </div>
+
+  <!-- CHIPS -->
+  <div class="chips" id="chips" style="display:none"></div>
+
+  <!-- RESULTS -->
+  <div id="results-area">
+    <div class="empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <p>Busca en más de 240 millones de artículos académicos</p>
+      <p style="font-size:12px;margin-top:4px">Incluye revistas indexadas en Scopus, WoS, MDPI, F1000 y DOAJ</p>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const FOLDER_KEY = 'mendeley_folder_v1';
+let AUTH = false;
+let USER_NAME = '';
+let SELECTED_FOLDER = sessionStorage.getItem(FOLDER_KEY) || '';
+let FOLDERS = [];
+let ALL_RESULTS = [];
+let FILTER = 'all';
+const SAVE_STATES = {};
+let EXPANDED = null;
+let MENDELEY_LIB = null;
+let UPLOAD_FILE = null;
+
+// ---------- helpers ----------
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function $(id) { return document.getElementById(id); }
+
+// ---------- APA 7 ----------
+function fmtAuthor(a) {
+  const last = a.last_name || a.name || '';
+  const first = a.first_name || '';
+  if (!last) return '';
+  const initials = first.split(/\s+/).filter(Boolean).map(n => n[0].toUpperCase() + '.').join(' ');
+  return initials ? `${last}, ${initials}` : last;
+}
+function fmtAuthors(authors) {
+  if (!authors?.length) return 'Autor desconocido';
+  const f = authors.map(fmtAuthor).filter(Boolean);
+  if (!f.length) return 'Autor desconocido';
+  if (f.length === 1) return f[0];
+  if (f.length <= 20) return f.slice(0, -1).join(', ') + ', & ' + f[f.length - 1];
+  return f.slice(0, 19).join(', ') + ', . . . ' + f[f.length - 1];
+}
+function inText(authors, year) {
+  const y = year || 's.f.';
+  if (!authors?.length) return '(s.f.)';
+  const l = authors[0].last_name || authors[0].name || '?';
+  if (authors.length === 1) return `(${l}, ${y})`;
+  if (authors.length === 2) return `(${l} & ${authors[1].last_name || '?'}, ${y})`;
+  return `(${l} et al., ${y})`;
+}
+function apa7(a) {
+  const auth = fmtAuthors(a.authors);
+  const yr = a.year ? `(${a.year}).` : '(s.f.).';
+  const j = a.journal || '';
+  const v = a.volume ? `, ${a.volume}` : '';
+  const iss = a.issue ? `(${a.issue})` : '';
+  const p = a.pages ? `, ${a.pages}` : '';
+  const doi = a.doi ? ` https://doi.org/${a.doi}` : '';
+  return `${auth} ${yr} ${a.title}. ${j}${v}${iss}${p}.${doi}`;
+}
+
+// ---------- search ----------
+function rebuildAbstract(inv) {
+  if (!inv) return '';
+  const arr = [];
+  for (const w in inv) for (const p of inv[w]) arr[p] = w;
+  const txt = arr.filter(Boolean).join(' ');
+  return txt.length > 600 ? txt.slice(0, 600) + '…' : txt;
+}
+function parseAuthors(authorships) {
+  return (authorships || []).map(a => {
+    const full = (a.author?.display_name || '').trim();
+    if (!full) return null;
+    const parts = full.split(/\s+/);
+    if (parts.length === 1) return { first_name: '', last_name: parts[0] };
+    return { first_name: parts.slice(0, -1).join(' '), last_name: parts[parts.length - 1] };
+  }).filter(Boolean);
+}
+
+async function doSearch() {
+  const q = $('query').value.trim();
+  if (!q) return;
+  const yfRaw = $('year-from').value.trim();
+  const ytRaw = $('year-to').value.trim();
+  const yf = yfRaw ? parseInt(yfRaw, 10) : null;
+  const yt = ytRaw ? parseInt(ytRaw, 10) : null;
+  if (yf && yt && yf > yt) {
+    $('results-area').innerHTML = '<div class="empty"><p style="color:#c0392b">El año "desde" no puede ser mayor que el año "hasta".</p></div>';
+    return;
+  }
+  const oa = $('only-oa').checked;
+
+  $('results-area').innerHTML = '<div class="loading"><span class="spinner">⏳</span> Buscando en bases de datos académicas…</div>';
+  $('chips').style.display = 'none';
+  FILTER = 'all';
+  for (const k in SAVE_STATES) delete SAVE_STATES[k];
+
+  try {
+    const filters = ['type:article'];
+    if (yf || yt) filters.push(`publication_year:${yf || 1900}-${yt || new Date().getFullYear()}`);
+    if (oa) filters.push('is_oa:true');
+    const params = new URLSearchParams({
+      search: q,
+      'per-page': '25',
+      select: 'id,doi,title,authorships,publication_year,biblio,primary_location,open_access,cited_by_count,abstract_inverted_index',
+      filter: filters.join(','),
+      mailto: 'tool@research.dev'
+    });
+    const r = await fetch(`https://api.openalex.org/works?${params}`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    ALL_RESULTS = (data.results || []).map(w => {
+      const src = w.primary_location?.source;
+      const doi = w.doi ? w.doi.replace(/^https?:\/\/doi\.org\//, '') : '';
+      const pub = (src?.host_organization_name || '').toLowerCase();
+      const indexedIn = src?.indexed_in || [];
+      const biblio = w.biblio || {};
+      const pages = biblio.first_page && biblio.last_page
+        ? `${biblio.first_page}-${biblio.last_page}`
+        : (biblio.first_page || '');
+      return {
+        id: w.id,
+        title: w.title || 'Sin título',
+        authors: parseAuthors(w.authorships),
+        year: w.publication_year,
+        volume: biblio.volume || '',
+        issue: biblio.issue || '',
+        pages,
+        journal: src?.display_name || '',
+        publisher: src?.host_organization_name || '',
+        doi,
+        isOA: !!w.open_access?.is_oa,
+        oaUrl: w.open_access?.oa_url || (doi ? 'https://doi.org/' + doi : ''),
+        inScopus: indexedIn.includes('scopus'),
+        inDoaj: indexedIn.includes('doaj') || !!src?.is_in_doaj,
+        inPMC: indexedIn.includes('pubmed_central') || indexedIn.includes('pubmed'),
+        citations: w.cited_by_count || 0,
+        abstract: rebuildAbstract(w.abstract_inverted_index),
+        isMDPI: pub.includes('mdpi'),
+        isF1000: pub.includes('f1000'),
+        isElsevier: pub.includes('elsevier'),
+        isSpringer: pub.includes('springer'),
+        isWiley: pub.includes('wiley')
+      };
+    });
+    renderResults();
+  } catch (e) {
+    $('results-area').innerHTML = `<div class="empty"><p style="color:#c0392b">Error en la búsqueda: ${esc(e.message)}</p></div>`;
+  }
+}
+
+function getFiltered() {
+  switch (FILTER) {
+    case 'scopus': return ALL_RESULTS.filter(a => a.inScopus);
+    case 'oa':     return ALL_RESULTS.filter(a => a.isOA);
+    case 'doaj':   return ALL_RESULTS.filter(a => a.inDoaj);
+    case 'mdpi':   return ALL_RESULTS.filter(a => a.isMDPI);
+    default:       return ALL_RESULTS;
+  }
+}
+
+function renderChips() {
+  const chips = $('chips');
+  if (!ALL_RESULTS.length) { chips.style.display = 'none'; return; }
+  chips.style.display = 'flex';
+  const items = [
+    ['all',    `Todos · ${ALL_RESULTS.length}`],
+    ['scopus', `Scopus · ${ALL_RESULTS.filter(a => a.inScopus).length}`],
+    ['oa',     `Acceso abierto · ${ALL_RESULTS.filter(a => a.isOA).length}`],
+    ['doaj',   `DOAJ · ${ALL_RESULTS.filter(a => a.inDoaj).length}`],
+    ['mdpi',   `MDPI · ${ALL_RESULTS.filter(a => a.isMDPI).length}`]
+  ];
+  chips.innerHTML = items.map(([f, lbl]) =>
+    `<button class="chip${FILTER === f ? ' active' : ''}" data-action="filter" data-filter="${f}">${esc(lbl)}</button>`
+  ).join('');
+}
+
+function renderResults() {
+  renderChips();
+  const f = getFiltered();
+  const area = $('results-area');
+  if (!f.length) {
+    area.innerHTML = '<div class="empty"><p>Sin resultados con este filtro.</p></div>';
+    return;
+  }
+  area.innerHTML = `<div class="results">${f.map(cardHTML).join('')}</div>`;
+}
+
+function cardHTML(a) {
+  const ss = SAVE_STATES[a.id] || '';
+  const isExp = EXPANDED === a.id;
+  const badges = [];
+  if (a.inScopus)   badges.push(['Scopus',   'badge-blue']);
+  if (a.inDoaj)     badges.push(['DOAJ',     'badge-green']);
+  if (a.isOA)       badges.push(['OA',       'badge-green']);
+  if (a.inPMC)      badges.push(['PMC',      'badge-green']);
+  if (a.isMDPI)     badges.push(['MDPI',     'badge-orange']);
+  if (a.isF1000)    badges.push(['F1000',    'badge-orange']);
+  if (a.isElsevier) badges.push(['Elsevier', 'badge-blue']);
+  if (a.isSpringer) badges.push(['Springer', 'badge-blue']);
+  if (a.isWiley)    badges.push(['Wiley',    'badge-blue']);
+
+  const cit = inText(a.authors, a.year);
+  const ref = apa7(a);
+
+  let saveBtn;
+  if (!AUTH)             saveBtn = `<button class="btn btn-sm" disabled title="Inicia sesión con Mendeley primero">＋ Guardar en Mendeley</button>`;
+  else if (ss === 'saving') saveBtn = `<button class="btn btn-sm" disabled>⏳ Guardando…</button>`;
+  else if (ss === 'saved')  saveBtn = `<button class="btn btn-sm btn-green" disabled>✓ Guardado en Mendeley</button>`;
+  else if (ss === 'error')  saveBtn = `<button class="btn btn-sm btn-err" data-action="save" data-id="${esc(a.id)}">✕ Error — reintentar</button>`;
+  else                      saveBtn = `<button class="btn btn-sm" data-action="save" data-id="${esc(a.id)}">＋ Guardar en Mendeley</button>`;
+
+  const titleHref = a.doi ? 'https://doi.org/' + a.doi : (a.oaUrl || '#');
+  const metaAuthors = fmtAuthors(a.authors.slice(0, 3)) + (a.authors.length > 3 ? ' et al.' : '');
+
+  return `<div class="card${ss === 'saved' ? ' saved' : ''}">
+    <a class="card-title" href="${esc(titleHref)}" target="_blank" rel="noopener">${esc(a.title)} ↗</a>
+    <div class="card-meta">${esc(metaAuthors)}${a.year ? ' · ' + a.year : ''}${a.journal ? ' · ' + esc(a.journal) : ''}</div>
+    <div class="badges">
+      ${badges.map(([lb, cls]) => `<span class="badge ${cls}">${lb}</span>`).join('')}
+      ${a.citations > 0 ? `<span class="badge badge-gray">📊 ${a.citations.toLocaleString()} citas</span>` : ''}
+    </div>
+    ${a.abstract ? `<p class="abstract${isExp ? ' show' : ''}">${esc(a.abstract)}</p>
+    <button class="btn btn-sm" style="margin-bottom:8px" data-action="toggle-abs" data-id="${esc(a.id)}">${isExp ? '▲ Ocultar' : '▼ Ver resumen'}</button>` : ''}
+    <div class="card-actions">
+      <button class="btn btn-sm btn-cite" data-action="copy" data-text="${esc(cit)}" title="Copiar cita en el texto">${esc(cit)}</button>
+      <button class="btn btn-sm" data-action="copy" data-text="${esc(ref)}" title="Copiar referencia APA 7 completa">📋 Copiar APA 7</button>
+      ${saveBtn}
+      ${a.isOA && a.oaUrl ? `<a href="${esc(a.oaUrl)}" target="_blank" rel="noopener"><button class="btn btn-sm">📄 PDF gratis</button></a>` : ''}
+    </div>
+  </div>`;
+}
+
+// ---------- copy ----------
+async function copyText(text, btn) {
+  const flash = () => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  };
+  try {
+    await navigator.clipboard.writeText(text);
+    flash();
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch {}
+    document.body.removeChild(ta);
+    flash();
+  }
+}
+
+// ---------- mendeley save ----------
+async function saveMendeley(id) {
+  if (!AUTH) { alert('Primero inicia sesión con Mendeley.'); return; }
+  const a = ALL_RESULTS.find(x => x.id === id);
+  if (!a) return;
+  SAVE_STATES[id] = 'saving';
+  renderResults();
+  try {
+    const body = {
+      title: a.title,
+      type: 'journal',
+      authors: a.authors,
+      year: a.year,
+      source: a.journal,
+      identifiers: a.doi ? { doi: a.doi } : {},
+      abstract: a.abstract || '',
+      websites: a.oaUrl ? [a.oaUrl] : []
+    };
+    const r = await fetch('/api/mendeley/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/vnd.mendeley-document.1+json' },
+      body: JSON.stringify(body)
+    });
+    if (r.status === 401 || r.status === 403) {
+      AUTH = false;
+      renderTokenZone('error', 'Sesión expirada. Vuelve a iniciar sesión.');
+      SAVE_STATES[id] = 'error';
+      renderResults();
+      return;
+    }
+    if (r.status === 201 || r.status === 200) {
+      const created = await r.json();
+      if (SELECTED_FOLDER && created.id) {
+        try {
+          await fetch(`/api/mendeley/folders/${encodeURIComponent(SELECTED_FOLDER)}/documents`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/vnd.mendeley-document.1+json' },
+            body: JSON.stringify({ id: created.id })
+          });
+        } catch {}
+      }
+      SAVE_STATES[id] = 'saved';
+      renderResults();
+      return;
+    }
+    throw new Error('HTTP ' + r.status);
+  } catch {
+    SAVE_STATES[id] = 'error';
+    renderResults();
+  }
+}
+
+// ---------- folders ----------
+async function loadFolders() {
+  if (!AUTH) return;
+  try {
+    const r = await fetch('/api/mendeley/folders');
+    if (!r.ok) { FOLDERS = []; return; }
+    FOLDERS = await r.json();
+    if (SELECTED_FOLDER && !FOLDERS.some(f => f.id === SELECTED_FOLDER)) {
+      SELECTED_FOLDER = '';
+      sessionStorage.removeItem(FOLDER_KEY);
+    }
+  } catch { FOLDERS = []; }
+}
+
+function folderSelectHTML() {
+  const opts = FOLDERS.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  return `
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d0e8d8;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <label style="font-size:12px;color:#1a7a3e;font-weight:600">📁 Carpeta activa:</label>
+      <select id="folder-select" style="padding:5px 8px;border:1px solid #6fcf97;border-radius:6px;background:#fff;font-size:12px;font-family:inherit;max-width:300px">
+        <option value="">— Toda la biblioteca —</option>
+        ${opts.map(f => `<option value="${esc(f.id)}" ${SELECTED_FOLDER === f.id ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}
+      </select>
+      <span style="font-size:11px;color:#888">${FOLDERS.length} carpeta${FOLDERS.length === 1 ? '' : 's'}</span>
+      <div style="flex-basis:100%;font-size:11px;color:#666;margin-top:4px">
+        Se aplica a <strong>guardar artículos</strong> (los nuevos van a esta carpeta) <strong>y a buscar citas</strong> en el .docx subido (solo se buscan ahí).
+      </div>
+    </div>`;
+}
+
+// ---------- auth (OAuth) ----------
+function renderTokenZone(status, msg) {
+  const zone = $('token-zone');
+  zone.className = 'token-zone' + (status === 'ok' ? ' ok' : status === 'error' ? ' err' : '');
+  const ub = $('upload-box');
+  if (ub) ub.style.display = (status === 'ok') ? '' : 'none';
+  if (status !== 'ok') MENDELEY_LIB = null;
+  const procBtn = $('btn-process');
+  if (procBtn) procBtn.disabled = !UPLOAD_FILE || status !== 'ok';
+  if (status === 'ok') {
+    zone.innerHTML = `
+      <div class="token-status ok">✓ Sesión iniciada${USER_NAME ? ' como <strong>' + esc(USER_NAME) + '</strong>' : ''}</div>
+      <p style="font-size:12px;color:#1a7a3e;margin-top:4px">Busca artículos abajo, guárdalos en tu biblioteca, o sube un .docx para vincular citas automáticamente.</p>
+      ${folderSelectHTML()}
+      <button class="btn btn-sm" style="margin-top:10px" data-action="logout">Cerrar sesión</button>`;
+  } else {
+    const head = status === 'error' ? 'Sesión expirada' : 'Inicia sesión con Mendeley';
+    zone.innerHTML = `
+      <div class="token-status ${status === 'error' ? 'err' : 'idle'}">🔐 ${head}</div>
+      <p class="token-hint">Te conectarás directamente con tu cuenta Mendeley. No necesitas pegar tokens ni nada — Mendeley pedirá tu permiso una sola vez.</p>
+      <button class="btn btn-primary" data-action="login" style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-block;width:16px;height:16px;background:#a6212e;color:#fff;border-radius:3px;font-size:11px;font-weight:700;text-align:center;line-height:16px">M</span>
+        Iniciar sesión con Mendeley
+      </button>
+      ${msg ? `<p style="color:#c0392b;font-size:12px;margin-top:8px">⚠ ${esc(msg)}</p>` : ''}`;
+  }
+}
+
+function login() {
+  window.location.href = '/auth/login';
+}
+
+function logout() {
+  AUTH = false;
+  USER_NAME = '';
+  FOLDERS = [];
+  SELECTED_FOLDER = '';
+  sessionStorage.removeItem(FOLDER_KEY);
+  window.location.href = '/auth/logout';
+}
+
+// ---------- citation auto-insert ----------
+function normName(s) {
+  return String(s || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z]/g, '');
+}
+
+async function loadMendeleyLibrary(onProgress, folderId) {
+  const all = [];
+  const folderPart = folderId ? `&folder_id=${encodeURIComponent(folderId)}` : '';
+  let url = `/api/mendeley/documents?limit=500&view=bib${folderPart}`;
+  let page = 0;
+  const scope = folderId ? 'de la carpeta seleccionada' : 'completa';
+  while (url) {
+    page++;
+    if (onProgress) onProgress(`Cargando biblioteca Mendeley ${scope} (página ${page}, ${all.length} cargados)…`);
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' al leer biblioteca');
+    const docs = await r.json();
+    all.push(...docs);
+    const link = r.headers.get('link') || r.headers.get('Link') || '';
+    const m = link.match(/<([^>]+)>\s*;\s*rel="next"/);
+    url = m ? m[1].replace(/^https:\/\/api\.mendeley\.com/, '/api/mendeley') : null;
+  }
+  return all;
+}
+
+// Detect citations. Returns array of {match, start, end, kind, items: [{authorPart, year, suffix}]}
+function detectCitations(text) {
+  const out = [];
+
+  // NARRATIVE: capture multi-word author + optional "et al." + " (YYYY)"
+  // Allow compound surnames (with spaces, lowercase connectors), Unicode letters
+  const NARR = /((?:\p{Lu}[\p{L}\p{M}\-']*(?:\s+(?:de|la|del|los|las|von|van|der|d'|el|y|i)){0,3})(?:\s+\p{Lu}[\p{L}\p{M}\-']*){0,4}(?:\s+(?:&|y|and)\s+(?:\p{Lu}[\p{L}\p{M}\-']*)(?:\s+\p{Lu}[\p{L}\p{M}\-']*){0,3})?(?:\s+et\s+al\.?)?)\s+\(((?:19|20)\d{2})([a-z]?)\)/gu;
+  let m;
+  while ((m = NARR.exec(text)) !== null) {
+    const author = m[1].trim();
+    if (author.length < 2) continue;
+    out.push({
+      match: m[0],
+      start: m.index,
+      end: m.index + m[0].length,
+      kind: 'narr',
+      items: [{ authorPart: author, year: m[2], suffix: m[3] }]
+    });
+  }
+
+  // PARENTHETICAL: any "( ... YYYY ... )" with semicolon-split for multi-cites
+  const PAREN_BLOCK = /\(([^()\n]{2,400})\)/g;
+  while ((m = PAREN_BLOCK.exec(text)) !== null) {
+    if (!/\b(?:19|20)\d{2}\b/.test(m[1])) continue;
+    if (out.some(c => m.index < c.end && m.index + m[0].length > c.start)) continue;
+
+    const segments = m[1].split(/\s*;\s*/);
+    const items = [];
+    for (const seg of segments) {
+      const trimmed = seg.trim();
+      // <author>, <year><suffix>(, p.<n>)?  or  <author> <year> (no comma)
+      const sm = trimmed.match(/^(.+?)[\s,]+((?:19|20)\d{2})([a-z]?)(?:\s*,?\s*pp?\.?\s*\d+(?:[\-,\s\d]+)?)?$/u);
+      if (sm) {
+        const author = sm[1].trim().replace(/[,]+$/, '').trim();
+        if (author.length >= 2 && /\p{Lu}/u.test(author)) {
+          items.push({ authorPart: author, year: sm[2], suffix: sm[3] });
+        }
+      }
+    }
+    if (items.length > 0) {
+      out.push({
+        match: m[0],
+        start: m.index,
+        end: m.index + m[0].length,
+        kind: 'paren',
+        items
+      });
+    }
+  }
+
+  return out.sort((a, b) => a.start - b.start);
+}
+
+function lastWord(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return parts[parts.length - 1] || '';
+}
+
+function extractFirstAuthor(authorPart) {
+  return authorPart
+    .replace(/\s+et\s+al\.?/i, '')
+    .split(/\s+(?:&|y|and)\s+/i)[0]
+    .trim();
+}
+
+// Returns true if two name strings should be considered the same person (last name).
+function nameSimilar(a, b) {
+  const na = normName(a);
+  const nb = normName(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  // Substring (compound surnames like García-López vs García)
+  if (na.length >= 3 && nb.length >= 3) {
+    if (na.includes(nb) || nb.includes(na)) return true;
+  }
+  return false;
+}
+
+function authorListMatches(citeAuthorPart, mendeleyAuthors) {
+  const citeFull = extractFirstAuthor(citeAuthorPart);
+  const citeLast = lastWord(citeFull);
+  for (const a of mendeleyAuthors || []) {
+    const meName = a.last_name || a.name || '';
+    if (!meName) continue;
+    const meLast = lastWord(meName);
+    if (nameSimilar(citeFull, meName)) return true;
+    if (nameSimilar(citeFull, meLast)) return true;
+    if (nameSimilar(citeLast, meName)) return true;
+    if (nameSimilar(citeLast, meLast)) return true;
+  }
+  return false;
+}
+
+function matchInLibrary(item, library) {
+  const yearNum = parseInt(item.year, 10);
+  if (!yearNum) return null;
+  // Pass 1: exact year
+  for (const d of library) {
+    if (d.year !== yearNum) continue;
+    if (authorListMatches(item.authorPart, d.authors)) return d;
+  }
+  // Pass 2: ±1 year
+  for (const d of library) {
+    if (Math.abs((d.year || 0) - yearNum) !== 1) continue;
+    if (authorListMatches(item.authorPart, d.authors)) return d;
+  }
+  // Pass 3: ±2 years (online-first vs publication delays)
+  for (const d of library) {
+    const diff = Math.abs((d.year || 0) - yearNum);
+    if (diff < 2 || diff > 2) continue;
+    if (authorListMatches(item.authorPart, d.authors)) return d;
+  }
+  return null;
+}
+
+// Find closest candidates in library for diagnostic display
+function findCandidates(item, library, maxResults = 3) {
+  const yearNum = parseInt(item.year, 10);
+  const citeFull = normName(extractFirstAuthor(item.authorPart));
+  const citeLast = normName(lastWord(extractFirstAuthor(item.authorPart)));
+  const scored = [];
+  for (const d of library) {
+    let score = 0;
+    const dy = d.year || 0;
+    const yDiff = Math.abs(dy - yearNum);
+    if (yDiff === 0) score += 50;
+    else if (yDiff === 1) score += 25;
+    else if (yDiff <= 3) score += 10;
+    let bestAuth = 0;
+    for (const a of d.authors || []) {
+      const aFull = normName(a.last_name || a.name || '');
+      const aLast = normName(lastWord(a.last_name || a.name || ''));
+      if (!aFull) continue;
+      if (aFull === citeFull || aLast === citeLast || aFull === citeLast || aLast === citeFull) { bestAuth = 60; break; }
+      if (aFull.includes(citeFull) || citeFull.includes(aFull)) { bestAuth = Math.max(bestAuth, 35); }
+      else if (aLast.includes(citeLast) || citeLast.includes(aLast)) { bestAuth = Math.max(bestAuth, 25); }
+      else if (aFull[0] && citeFull[0] && aFull[0] === citeFull[0]) { bestAuth = Math.max(bestAuth, 3); }
+    }
+    score += bestAuth;
+    if (score >= 30) scored.push({ doc: d, score });
+  }
+  return scored.sort((a, b) => b.score - a.score).slice(0, maxResults).map(s => s.doc);
+}
+
+function formatCitationAPA(doc, kind) {
+  const authors = doc.authors || [];
+  const y = doc.year || 's.f.';
+  const last = i => authors[i]?.last_name || '?';
+  let label;
+  if (authors.length === 0) label = 'Autor desconocido';
+  else if (authors.length === 1) label = last(0);
+  else if (authors.length === 2) label = kind === 'narr' ? `${last(0)} y ${last(1)}` : `${last(0)} & ${last(1)}`;
+  else label = `${last(0)} et al.`;
+  return kind === 'narr' ? `${label} (${y})` : `(${label}, ${y})`;
+}
+
+function apa7FromMendeley(d) {
+  const article = {
+    title: d.title || '',
+    authors: d.authors || [],
+    year: d.year,
+    journal: d.source || '',
+    volume: d.volume || '',
+    issue: d.issue || '',
+    pages: d.pages || '',
+    doi: d.identifiers?.doi || ''
+  };
+  return apa7(article);
+}
+
+function escXml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function mendeleyDocToCSL(d) {
+  const today = new Date();
+  const csl = {
+    type: 'article-journal',
+    id: d.id,
+    title: d.title || '',
+    author: (d.authors || []).map(a => ({
+      family: a.last_name || '',
+      given: a.first_name || '',
+      'parse-names': false,
+      'dropping-particle': '',
+      'non-dropping-particle': ''
+    })),
+    'container-title': d.source || '',
+    accessed: { 'date-parts': [[today.getFullYear(), today.getMonth() + 1, today.getDate()]] },
+    issued: { 'date-parts': [[Number(d.year) || today.getFullYear()]] }
+  };
+  if (d.volume) csl.volume = String(d.volume);
+  if (d.issue) csl.issue = String(d.issue);
+  if (d.pages) csl.page = String(d.pages);
+  if (d.identifiers?.doi) csl.DOI = d.identifiers.doi;
+  if (d.publisher) csl.publisher = String(d.publisher);
+  return csl;
+}
+
+function randUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
+// UTF-8 safe base64 encode
+function b64utf8(s) {
+  return btoa(unescape(encodeURIComponent(s)));
+}
+
+function formatMultiCitationAPA(cite, docs) {
+  if (cite.kind === 'narr' || docs.length === 1) {
+    return formatCitationAPA(docs[0], cite.kind);
+  }
+  // Multi parenthetical: (A et al., 2020; B & C, 2021)
+  const parts = docs.map(d => formatCitationAPA(d, 'paren').replace(/^\(|\)$/g, ''));
+  return '(' + parts.join('; ') + ')';
+}
+
+function buildMendeleySDT(cite, docs, rPrXml) {
+  const docsArr = Array.isArray(docs) ? docs : [docs];
+  const displayText = formatMultiCitationAPA(cite, docsArr);
+  const citeprocText = displayText.replace(/&/g, '&#38;');
+  const citationItems = docsArr.map(doc => ({
+    id: doc.id,
+    itemData: mendeleyDocToCSL(doc),
+    isTemporary: false,
+    'suppress-author': false,
+    composite: false,
+    'author-only': false
+  }));
+  const citationData = {
+    citationID: 'MENDELEY_CITATION_' + randUUID(),
+    properties: { noteIndex: 0 },
+    isEdited: false,
+    manualOverride: {
+      isManuallyOverridden: false,
+      citeprocText,
+      manualOverrideText: ''
+    },
+    citationItems
+  };
+  const tagValue = 'MENDELEY_CITATION_v3_' + b64utf8(JSON.stringify(citationData));
+  const sdtId = Math.floor(Math.random() * 1000000000);
+  const sdtPrRPr = rPrXml || '<w:rPr><w:noProof/></w:rPr>';
+  return `<w:sdt><w:sdtPr>${sdtPrRPr}<w:tag w:val="${escXml(tagValue)}"/><w:id w:val="${sdtId}"/></w:sdtPr><w:sdtContent><w:r>${rPrXml}<w:t xml:space="preserve">${escXml(displayText)}</w:t></w:r></w:sdtContent></w:sdt>`;
+}
+
+function buildRun(text, rPrXml, extraRPr) {
+  const extra = extraRPr || '';
+  return `<w:r>${rPrXml}${extra ? `<w:rPr>${extra}</w:rPr>` : ''}<w:t xml:space="preserve">${escXml(text)}</w:t></w:r>`;
+}
+
+function buildUnmatchedRun(text, rPrXml) {
+  return `<w:r>${rPrXml}<w:rPr><w:color w:val="C00000"/><w:b/></w:rPr><w:t xml:space="preserve">${escXml(text)}</w:t></w:r>`;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+
+function getRunText(runEl) {
+  const ts = runEl.getElementsByTagNameNS(W_NS, 't');
+  let out = '';
+  for (let i = 0; i < ts.length; i++) out += ts[i].textContent;
+  return out;
+}
+
+function getRPrXml(runEl) {
+  const rPr = runEl.getElementsByTagNameNS(W_NS, 'rPr');
+  if (!rPr.length) return '';
+  for (let i = 0; i < rPr.length; i++) {
+    if (rPr[i].parentNode === runEl) {
+      let s = new XMLSerializer().serializeToString(rPr[i]);
+      // Strip xmlns declarations that will be redundant in our wrapper
+      s = s.replace(/\sxmlns(?::[a-zA-Z0-9]+)?="[^"]*"/g, '');
+      return s;
+    }
+  }
+  return '';
+}
+
+async function processDocument() {
+  const statusEl = $('upload-status');
+  const btn = $('btn-process');
+  if (!UPLOAD_FILE) return;
+  if (!AUTH) { statusEl.className = 'upload-status err'; statusEl.textContent = '⚠ Inicia sesión con Mendeley primero.'; return; }
+  if (typeof JSZip === 'undefined') { statusEl.className = 'upload-status err'; statusEl.textContent = '❌ La librería JSZip no cargó. Revisa tu conexión y refresca.'; return; }
+  btn.disabled = true;
+  statusEl.className = 'upload-status';
+  statusEl.textContent = '⏳ Procesando documento…';
+  try {
+    if (!MENDELEY_LIB) {
+      MENDELEY_LIB = await loadMendeleyLibrary(msg => { statusEl.textContent = '⏳ ' + msg; }, SELECTED_FOLDER || null);
+    }
+
+    statusEl.textContent = '⏳ Leyendo .docx…';
+    const ab = await UPLOAD_FILE.arrayBuffer();
+    const zip = await JSZip.loadAsync(ab);
+    const docFile = zip.file('word/document.xml');
+    if (!docFile) throw new Error('No se encontró word/document.xml en el .docx');
+    const docXmlStr = await docFile.async('string');
+
+    statusEl.textContent = '⏳ Detectando citas en cada párrafo y vinculando con Mendeley…';
+    const xmlDoc = new DOMParser().parseFromString(docXmlStr, 'application/xml');
+    const parseErr = xmlDoc.getElementsByTagName('parsererror')[0];
+    if (parseErr) throw new Error('No pude parsear word/document.xml');
+
+    const paragraphs = Array.from(xmlDoc.getElementsByTagNameNS(W_NS, 'p'));
+
+    let totalCites = 0, matchedCount = 0;
+    const missList = [];
+    const diagnostic = []; // {cite, item, status, hit, candidates}
+
+    for (const p of paragraphs) {
+      // direct child runs
+      const runs = [];
+      for (const ch of Array.from(p.childNodes)) {
+        if (ch.nodeType === 1 && ch.localName === 'r' && ch.namespaceURI === W_NS) runs.push(ch);
+      }
+      if (!runs.length) continue;
+
+      const runTexts = runs.map(getRunText);
+      const fullText = runTexts.join('');
+      if (!/\d{4}/.test(fullText)) continue;
+
+      const cites = detectCitations(fullText);
+      if (!cites.length) continue;
+
+      // Inherit rPr from the first run with one (to keep paragraph font/style)
+      let rPrXml = '';
+      for (const r of runs) { rPrXml = getRPrXml(r); if (rPrXml) break; }
+
+      // Build new runs/sdts XML, slicing fullText by cite positions
+      const pieces = [];
+      let pos = 0;
+      for (const c of cites) {
+        if (c.start > pos) pieces.push(buildRun(fullText.slice(pos, c.start), rPrXml));
+        // Match each item in the citation
+        const matched = c.items.map(it => matchInLibrary(it, MENDELEY_LIB));
+        totalCites += c.items.length;
+        const matchedCount_ = matched.filter(x => x !== null).length;
+        matchedCount += matchedCount_;
+        // Diagnostic per item
+        c.items.forEach((it, i) => {
+          const hit = matched[i];
+          diagnostic.push({
+            citeText: c.match,
+            item: it,
+            status: hit ? 'matched' : 'missed',
+            hit,
+            candidates: hit ? [] : findCandidates(it, MENDELEY_LIB)
+          });
+        });
+        if (matchedCount_ === c.items.length && matchedCount_ > 0) {
+          pieces.push(buildMendeleySDT(c, matched, rPrXml));
+        } else {
+          // Track which items missed
+          c.items.forEach((it, i) => { if (!matched[i]) missList.push(`(${it.authorPart}, ${it.year}${it.suffix || ''})`); });
+          if (matchedCount_ === 0) {
+            pieces.push(buildUnmatchedRun(c.match, rPrXml));
+          } else {
+            // Partial match: SDT with the matched ones + red marker noting missing
+            const matchedDocs = matched.filter(x => x !== null);
+            const matchedCite = { ...c, items: c.items.filter((_, i) => matched[i] !== null), kind: c.kind };
+            pieces.push(buildMendeleySDT(matchedCite, matchedDocs, rPrXml));
+            const missingNotes = c.items.filter((_, i) => !matched[i]).map(it => `(${it.authorPart}, ${it.year}${it.suffix || ''})`).join(' ');
+            pieces.push(buildUnmatchedRun(' [FALTA: ' + missingNotes + ']', rPrXml));
+          }
+        }
+        pos = c.end;
+      }
+      if (pos < fullText.length) pieces.push(buildRun(fullText.slice(pos), rPrXml));
+
+      const newInnerXml = pieces.join('');
+
+      // Remove old runs from p, keep pPr and other elements (pPr is typically first)
+      for (const r of runs) p.removeChild(r);
+
+      // Parse the new pieces wrapped with namespaces, then append children to p
+      const wrapper = `<w:p xmlns:w="${W_NS}">${newInnerXml}</w:p>`;
+      const parsed = new DOMParser().parseFromString(wrapper, 'application/xml').documentElement;
+      // Move children to p in order
+      while (parsed.firstChild) {
+        p.appendChild(xmlDoc.importNode(parsed.firstChild, true));
+        parsed.removeChild(parsed.firstChild);
+      }
+    }
+
+    // Serialize back
+    const newXml = new XMLSerializer().serializeToString(xmlDoc);
+    // Some XMLSerializers drop the XML declaration; ensure it's present
+    const finalXml = newXml.startsWith('<?xml') ? newXml : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + newXml;
+    zip.file('word/document.xml', finalXml);
+
+    const blob = await zip.generateAsync({
+      type: 'blob',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    const baseName = UPLOAD_FILE.name.replace(/\.docx$/i, '');
+    downloadBlob(blob, `${baseName} — con citas Mendeley.docx`);
+
+    const diagHTML = diagnostic.map(d => {
+      const cand = d.candidates.length ? `
+        <div class="diag-candidates">
+          <div style="font-size:10px;color:#666;margin-bottom:2px">Candidatos cercanos en tu Mendeley:</div>
+          ${d.candidates.map(c => {
+            const authNames = (c.authors || []).slice(0, 3).map(a => esc(a.last_name || '')).join(', ');
+            return `<div class="diag-cand">• <b>${esc(authNames || '?')}</b> (${c.year || '?'}) — ${esc((c.title || '').slice(0, 90))}${(c.title || '').length > 90 ? '…' : ''}</div>`;
+          }).join('')}
+        </div>` : '<div class="diag-candidates"><div style="font-size:10px;color:#999">Sin candidatos cercanos (no hay docs en Mendeley con apellido o año similar).</div></div>';
+      if (d.status === 'matched') {
+        const auth = (d.hit.authors || []).slice(0, 3).map(a => esc(a.last_name || '')).join(', ');
+        return `<div class="diag-row matched">
+          <span class="diag-status ok">✓ VINCULADA</span><span class="diag-cite">${esc(d.citeText)}</span>
+          <div class="diag-hit">→ ${esc(auth || '?')} (${d.hit.year || '?'}) — ${esc((d.hit.title || '').slice(0, 100))}</div>
+        </div>`;
+      } else {
+        return `<div class="diag-row missed">
+          <span class="diag-status bad">✕ NO ENCONTRADA</span><span class="diag-cite">${esc(d.citeText)}</span>
+          <div style="font-size:10px;color:#666;margin-top:2px">Buscado: apellido <code>${esc(extractFirstAuthor(d.item.authorPart))}</code>, año <code>${esc(d.item.year)}</code></div>
+          ${cand}
+        </div>`;
+      }
+    }).join('');
+
+    statusEl.innerHTML = `
+      ✅ <strong>Documento generado y descargado.</strong>
+      <div class="stat-row">
+        <span class="stat total">Total: ${totalCites}</span>
+        <span class="stat found">Vinculadas: ${matchedCount}</span>
+        <span class="stat miss">No encontradas: ${totalCites - matchedCount}</span>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:#444">
+        <strong>Cómo usarlo en Word:</strong> Abre el .docx con el plugin <strong>Mendeley Cite</strong>. Las citas vinculadas tienen sombreado gris. Click en <em>"Insert Bibliography"</em> al final del documento para generar la lista de referencias.
+      </div>
+      ${diagnostic.length ? `<div class="diag">
+        <div class="diag-head">Diagnóstico cita por cita — revisa las no encontradas y sus candidatos cercanos</div>
+        ${diagHTML}
+      </div>` : ''}`;
+  } catch (e) {
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = '❌ Error: ' + e.message;
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function setupUploadHandlers() {
+  const input = $('doc-upload');
+  const btn = $('btn-process');
+  input.addEventListener('change', () => {
+    UPLOAD_FILE = input.files[0] || null;
+    btn.disabled = !UPLOAD_FILE || !AUTH;
+    if (UPLOAD_FILE && !AUTH) {
+      $('upload-status').className = 'upload-status err';
+      $('upload-status').textContent = '⚠ Primero inicia sesión con Mendeley arriba.';
+    } else {
+      $('upload-status').textContent = '';
+    }
+  });
+  btn.addEventListener('click', processDocument);
+}
+
+function updateUploadBoxVisibility() {
+  $('upload-box').style.display = AUTH ? '' : 'none';
+  if (!AUTH) MENDELEY_LIB = null;
+}
+
+// ---------- event delegation ----------
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-action]');
+  if (!t) return;
+  const action = t.dataset.action;
+  switch (action) {
+    case 'filter':         FILTER = t.dataset.filter; renderResults(); break;
+    case 'toggle-abs':     EXPANDED = EXPANDED === t.dataset.id ? null : t.dataset.id; renderResults(); break;
+    case 'copy':           copyText(t.dataset.text, t); break;
+    case 'save':           saveMendeley(t.dataset.id); break;
+    case 'login':          login(); break;
+    case 'logout':         logout(); break;
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (e.target.id === 'query') doSearch();
+});
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'folder-select') {
+    SELECTED_FOLDER = e.target.value;
+    MENDELEY_LIB = null; // invalidate library cache so it reloads with the new folder filter
+    if (SELECTED_FOLDER) sessionStorage.setItem(FOLDER_KEY, SELECTED_FOLDER);
+    else sessionStorage.removeItem(FOLDER_KEY);
+    const us = $('upload-status');
+    if (us) us.textContent = '';
+  }
+});
+
+$('btn-search').addEventListener('click', doSearch);
+setupUploadHandlers();
+
+// ---------- init ----------
+(async function init() {
+  try {
+    const r = await fetch('/api/me', { credentials: 'same-origin' });
+    if (r.ok) {
+      const j = await r.json();
+      if (j.authenticated) {
+        AUTH = true;
+        USER_NAME = j.name || '';
+        await loadFolders();
+        renderTokenZone('ok');
+        return;
+      }
+    }
+  } catch {}
+  AUTH = false;
+  renderTokenZone('idle');
+})();
+</script>
+</body>
+</html>
