@@ -211,6 +211,10 @@ function inText(authors, year) {
 function apa7(a) {
   const auth = fmtAuthors(a.authors);
   const yr = a.year ? `(${a.year}).` : '(s.f.).';
+  if (a.isBook) {
+    const pub = a.publisher ? ` ${a.publisher}.` : '';
+    return `${auth} ${yr} ${a.title}.${pub}`;
+  }
   const j = a.journal || '';
   const v = a.volume ? `, ${a.volume}` : '';
   const iss = a.issue ? `(${a.issue})` : '';
@@ -259,6 +263,8 @@ function parseOpenAlexWork(w) {
     journal: src?.display_name || '',
     publisher: src?.host_organization_name || '',
     doi,
+    isbn: '',
+    isBook: false,
     isOA: !!w.open_access?.is_oa,
     oaUrl: w.open_access?.oa_url || (doi ? 'https://doi.org/' + doi : ''),
     inScopus: indexedIn.includes('scopus'),
@@ -315,6 +321,7 @@ function detectIdentifier(q) {
 }
 
 async function fetchByIdentifier(id) {
+  if (id.type === 'isbn') return await openLibraryLookup(id.value);
   const params = new URLSearchParams({ select: SELECT_FIELDS, mailto: 'tool@research.dev' });
   let url;
   if (id.type === 'doi') {
@@ -322,7 +329,6 @@ async function fetchByIdentifier(id) {
   } else if (id.type === 'pmid') {
     url = `https://api.openalex.org/works/pmid:${encodeURIComponent(id.value)}?${params}`;
   } else if (id.type === 'arxiv') {
-    // arXiv papers get DOI 10.48550/arXiv.<id>
     url = `https://api.openalex.org/works/doi:10.48550/arXiv.${encodeURIComponent(id.value)}?${params}`;
   } else {
     return null;
@@ -336,6 +342,59 @@ async function fetchByIdentifier(id) {
   } catch {
     return null;
   }
+}
+
+async function openLibraryLookup(isbn) {
+  try {
+    const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`);
+    if (!r.ok) return null;
+    const data = await r.json();
+    const book = data[`ISBN:${isbn}`];
+    if (!book) return null;
+    return parseOpenLibraryBook(book, isbn);
+  } catch {
+    return null;
+  }
+}
+
+function parseOpenLibraryBook(book, isbn) {
+  let year = null;
+  const ym = (book.publish_date || '').match(/\b(19|20)\d{2}\b/);
+  if (ym) year = parseInt(ym[0], 10);
+  const authors = (book.authors || []).map(a => {
+    const full = (a.name || '').trim();
+    if (!full) return null;
+    const parts = full.split(/\s+/);
+    if (parts.length === 1) return { first_name: '', last_name: parts[0] };
+    return { first_name: parts.slice(0, -1).join(' '), last_name: parts[parts.length - 1] };
+  }).filter(Boolean);
+  const publisher = (book.publishers || []).map(p => p.name).join(', ');
+  return {
+    id: book.url || `https://openlibrary.org/isbn/${isbn}`,
+    title: book.title || 'Sin título',
+    authors,
+    year,
+    volume: '',
+    issue: '',
+    pages: book.number_of_pages ? String(book.number_of_pages) : '',
+    journal: '',
+    publisher,
+    doi: '',
+    isbn,
+    isBook: true,
+    isOA: false,
+    oaUrl: book.url || '',
+    inScopus: false,
+    inDoaj: false,
+    inPMC: false,
+    citations: 0,
+    abstract: book.notes || '',
+    isMDPI: false,
+    isF1000: false,
+    isElsevier: false,
+    isSpringer: false,
+    isWiley: false
+  };
 }
 
 async function doSearch() {
@@ -358,25 +417,24 @@ async function doSearch() {
   for (const k in SAVE_STATES) delete SAVE_STATES[k];
 
   try {
-    // 1) Identifier lookup (DOI / PMID / ArXiv)
-    if (id.type === 'doi' || id.type === 'pmid' || id.type === 'arxiv') {
+    // 1) Identifier lookup (DOI / PMID / ArXiv / ISBN)
+    if (id.type === 'doi' || id.type === 'pmid' || id.type === 'arxiv' || id.type === 'isbn') {
       const work = await fetchByIdentifier(id);
       if (work) {
         ALL_RESULTS = [work];
         renderResults();
         return;
       }
-      $('results-area').innerHTML = `<div class="empty"><p>No se encontró el documento con ${esc(id.label)} <code>${esc(id.value)}</code>. Intenta con palabras clave o verifica el identificador.</p></div>`;
+      $('results-area').innerHTML = `<div class="empty"><p>No se encontró el documento con ${esc(id.label)} <code>${esc(id.value)}</code>. Verifica el identificador o intenta con palabras clave.</p></div>`;
       return;
     }
 
-    // 2) Keyword / ISBN search
-    const filters = [];
-    if (id.type !== 'isbn') filters.push('type:article'); // books for ISBN
+    // 2) Keyword search
+    const filters = ['type:article'];
     if (yf || yt) filters.push(`publication_year:${yf || 1900}-${yt || new Date().getFullYear()}`);
     if (oa) filters.push('is_oa:true');
     const params = new URLSearchParams({
-      search: id.type === 'isbn' ? id.value : q,
+      search: q,
       'per-page': '25',
       select: SELECT_FIELDS,
       mailto: 'tool@research.dev'
@@ -433,6 +491,7 @@ function cardHTML(a) {
   const ss = SAVE_STATES[a.id] || '';
   const isExp = EXPANDED === a.id;
   const badges = [];
+  if (a.isBook)     badges.push(['📚 Libro', 'badge-orange']);
   if (a.inScopus)   badges.push(['Scopus',   'badge-blue']);
   if (a.inDoaj)     badges.push(['DOAJ',     'badge-green']);
   if (a.isOA)       badges.push(['OA',       'badge-green']);
@@ -458,7 +517,7 @@ function cardHTML(a) {
 
   return `<div class="card${ss === 'saved' ? ' saved' : ''}">
     <a class="card-title" href="${esc(titleHref)}" target="_blank" rel="noopener">${esc(a.title)} ↗</a>
-    <div class="card-meta">${esc(metaAuthors)}${a.year ? ' · ' + a.year : ''}${a.journal ? ' · ' + esc(a.journal) : ''}</div>
+    <div class="card-meta">${esc(metaAuthors)}${a.year ? ' · ' + a.year : ''}${a.journal ? ' · ' + esc(a.journal) : (a.publisher && a.isBook ? ' · ' + esc(a.publisher) : '')}</div>
     <div class="badges">
       ${badges.map(([lb, cls]) => `<span class="badge ${cls}">${lb}</span>`).join('')}
       ${a.citations > 0 ? `<span class="badge badge-gray">📊 ${a.citations.toLocaleString()} citas</span>` : ''}
@@ -505,16 +564,23 @@ async function saveMendeley(id) {
   SAVE_STATES[id] = 'saving';
   renderResults();
   try {
+    const identifiers = {};
+    if (a.doi) identifiers.doi = a.doi;
+    if (a.isbn) identifiers.isbn = a.isbn;
     const body = {
       title: a.title,
-      type: 'journal',
+      type: a.isBook ? 'book' : 'journal',
       authors: a.authors,
       year: a.year,
-      source: a.journal,
-      identifiers: a.doi ? { doi: a.doi } : {},
+      identifiers,
       abstract: a.abstract || '',
       websites: a.oaUrl ? [a.oaUrl] : []
     };
+    if (a.isBook) {
+      if (a.publisher) body.publisher = a.publisher;
+    } else {
+      body.source = a.journal;
+    }
     const r = await fetch('/api/mendeley/documents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/vnd.mendeley-document.1+json' },
@@ -823,8 +889,9 @@ function escXml(s) {
 
 function mendeleyDocToCSL(d) {
   const today = new Date();
+  const isBook = d.type === 'book' || d.isBook;
   const csl = {
-    type: 'article-journal',
+    type: isBook ? 'book' : 'article-journal',
     id: d.id,
     title: d.title || '',
     author: (d.authors || []).map(a => ({
@@ -834,14 +901,15 @@ function mendeleyDocToCSL(d) {
       'dropping-particle': '',
       'non-dropping-particle': ''
     })),
-    'container-title': d.source || '',
     accessed: { 'date-parts': [[today.getFullYear(), today.getMonth() + 1, today.getDate()]] },
     issued: { 'date-parts': [[Number(d.year) || today.getFullYear()]] }
   };
+  if (!isBook) csl['container-title'] = d.source || '';
   if (d.volume) csl.volume = String(d.volume);
   if (d.issue) csl.issue = String(d.issue);
   if (d.pages) csl.page = String(d.pages);
   if (d.identifiers?.doi) csl.DOI = d.identifiers.doi;
+  if (d.identifiers?.isbn) csl.ISBN = d.identifiers.isbn;
   if (d.publisher) csl.publisher = String(d.publisher);
   return csl;
 }
