@@ -127,7 +127,7 @@
   <!-- SEARCH -->
   <div class="search-box">
     <div class="search-row">
-      <input type="text" id="query" placeholder="Palabras clave, título, autor, DOI…">
+      <input type="text" id="query" placeholder="Palabras clave, título, autor — o DOI, PMID, ArXiv ID, ISBN…">
       <button class="btn btn-primary" id="btn-search">Buscar</button>
     </div>
     <div class="search-filters">
@@ -237,6 +237,107 @@ function parseAuthors(authorships) {
   }).filter(Boolean);
 }
 
+const SELECT_FIELDS = 'id,doi,title,authorships,publication_year,biblio,primary_location,open_access,cited_by_count,abstract_inverted_index,ids,type';
+
+function parseOpenAlexWork(w) {
+  const src = w.primary_location?.source;
+  const doi = w.doi ? w.doi.replace(/^https?:\/\/doi\.org\//, '') : '';
+  const pub = (src?.host_organization_name || '').toLowerCase();
+  const indexedIn = src?.indexed_in || [];
+  const biblio = w.biblio || {};
+  const pages = biblio.first_page && biblio.last_page
+    ? `${biblio.first_page}-${biblio.last_page}`
+    : (biblio.first_page || '');
+  return {
+    id: w.id,
+    title: w.title || 'Sin título',
+    authors: parseAuthors(w.authorships),
+    year: w.publication_year,
+    volume: biblio.volume || '',
+    issue: biblio.issue || '',
+    pages,
+    journal: src?.display_name || '',
+    publisher: src?.host_organization_name || '',
+    doi,
+    isOA: !!w.open_access?.is_oa,
+    oaUrl: w.open_access?.oa_url || (doi ? 'https://doi.org/' + doi : ''),
+    inScopus: indexedIn.includes('scopus'),
+    inDoaj: indexedIn.includes('doaj') || !!src?.is_in_doaj,
+    inPMC: indexedIn.includes('pubmed_central') || indexedIn.includes('pubmed'),
+    citations: w.cited_by_count || 0,
+    abstract: rebuildAbstract(w.abstract_inverted_index),
+    isMDPI: pub.includes('mdpi'),
+    isF1000: pub.includes('f1000'),
+    isElsevier: pub.includes('elsevier'),
+    isSpringer: pub.includes('springer'),
+    isWiley: pub.includes('wiley')
+  };
+}
+
+// Detect academic identifier in input: DOI, PMID, ArXiv ID, ISBN
+function detectIdentifier(q) {
+  const t = q.trim();
+  // DOI (with or without doi.org prefix)
+  let m = t.match(/^(?:https?:\/\/(?:dx\.)?doi\.org\/)?(10\.\d{4,}\/\S+)$/i);
+  if (m) return { type: 'doi', value: m[1], label: 'DOI' };
+  // PubMed URL
+  m = t.match(/^https?:\/\/(?:www\.)?(?:ncbi\.nlm\.nih\.gov\/pubmed|pubmed\.ncbi\.nlm\.nih\.gov)\/(\d+)/i);
+  if (m) return { type: 'pmid', value: m[1], label: 'PMID' };
+  // PMID with prefix
+  m = t.match(/^(?:pmid|pubmed)\s*[:#]?\s*(\d+)$/i);
+  if (m) return { type: 'pmid', value: m[1], label: 'PMID' };
+  // ArXiv URL
+  m = t.match(/^https?:\/\/arxiv\.org\/(?:abs|pdf)\/(\d{4}\.\d{4,5}(?:v\d+)?|[a-z\-]+\/\d{7})/i);
+  if (m) return { type: 'arxiv', value: m[1], label: 'ArXiv' };
+  // ArXiv with prefix
+  m = t.match(/^arxiv\s*[:#]?\s*(\d{4}\.\d{4,5}(?:v\d+)?|[a-z\-]+\/\d{7})$/i);
+  if (m) return { type: 'arxiv', value: m[1], label: 'ArXiv' };
+  // ArXiv pattern XXXX.XXXXX (new format)
+  m = t.match(/^(\d{4}\.\d{4,5}(?:v\d+)?)$/);
+  if (m) return { type: 'arxiv', value: m[1], label: 'ArXiv' };
+  // ISBN with prefix
+  m = t.match(/^isbn\s*[:#]?\s*([\d\-X ]{10,17})$/i);
+  if (m) {
+    const digits = m[1].replace(/[^\dX]/gi, '');
+    if (digits.length === 10 || digits.length === 13) return { type: 'isbn', value: digits, label: 'ISBN' };
+  }
+  // Bare 10 or 13 digit string with optional hyphens → ISBN
+  m = t.match(/^([\d\-X ]{10,17})$/i);
+  if (m) {
+    const digits = m[1].replace(/[^\dX]/gi, '');
+    if (digits.length === 13 && /^97[89]/.test(digits)) return { type: 'isbn', value: digits, label: 'ISBN' };
+    if (digits.length === 10) return { type: 'isbn', value: digits, label: 'ISBN' };
+  }
+  // Pure digit PMID (5-9 digits — typical PubMed IDs)
+  m = t.match(/^(\d{5,9})$/);
+  if (m) return { type: 'pmid', value: m[1], label: 'PMID' };
+  return { type: 'search', value: t, label: null };
+}
+
+async function fetchByIdentifier(id) {
+  const params = new URLSearchParams({ select: SELECT_FIELDS, mailto: 'tool@research.dev' });
+  let url;
+  if (id.type === 'doi') {
+    url = `https://api.openalex.org/works/doi:${encodeURIComponent(id.value)}?${params}`;
+  } else if (id.type === 'pmid') {
+    url = `https://api.openalex.org/works/pmid:${encodeURIComponent(id.value)}?${params}`;
+  } else if (id.type === 'arxiv') {
+    // arXiv papers get DOI 10.48550/arXiv.<id>
+    url = `https://api.openalex.org/works/doi:10.48550/arXiv.${encodeURIComponent(id.value)}?${params}`;
+  } else {
+    return null;
+  }
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const work = await r.json();
+    if (work.error) return null;
+    return parseOpenAlexWork(work);
+  } catch {
+    return null;
+  }
+}
+
 async function doSearch() {
   const q = $('query').value.trim();
   if (!q) return;
@@ -250,59 +351,41 @@ async function doSearch() {
   }
   const oa = $('only-oa').checked;
 
-  $('results-area').innerHTML = '<div class="loading"><span class="spinner">⏳</span> Buscando en bases de datos académicas…</div>';
+  const id = detectIdentifier(q);
+  $('results-area').innerHTML = `<div class="loading"><span class="spinner">⏳</span> ${id.label ? `Buscando por ${esc(id.label)}…` : 'Buscando en bases de datos académicas…'}</div>`;
   $('chips').style.display = 'none';
   FILTER = 'all';
   for (const k in SAVE_STATES) delete SAVE_STATES[k];
 
   try {
-    const filters = ['type:article'];
+    // 1) Identifier lookup (DOI / PMID / ArXiv)
+    if (id.type === 'doi' || id.type === 'pmid' || id.type === 'arxiv') {
+      const work = await fetchByIdentifier(id);
+      if (work) {
+        ALL_RESULTS = [work];
+        renderResults();
+        return;
+      }
+      $('results-area').innerHTML = `<div class="empty"><p>No se encontró el documento con ${esc(id.label)} <code>${esc(id.value)}</code>. Intenta con palabras clave o verifica el identificador.</p></div>`;
+      return;
+    }
+
+    // 2) Keyword / ISBN search
+    const filters = [];
+    if (id.type !== 'isbn') filters.push('type:article'); // books for ISBN
     if (yf || yt) filters.push(`publication_year:${yf || 1900}-${yt || new Date().getFullYear()}`);
     if (oa) filters.push('is_oa:true');
     const params = new URLSearchParams({
-      search: q,
+      search: id.type === 'isbn' ? id.value : q,
       'per-page': '25',
-      select: 'id,doi,title,authorships,publication_year,biblio,primary_location,open_access,cited_by_count,abstract_inverted_index',
-      filter: filters.join(','),
+      select: SELECT_FIELDS,
       mailto: 'tool@research.dev'
     });
+    if (filters.length) params.set('filter', filters.join(','));
     const r = await fetch(`https://api.openalex.org/works?${params}`);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
-    ALL_RESULTS = (data.results || []).map(w => {
-      const src = w.primary_location?.source;
-      const doi = w.doi ? w.doi.replace(/^https?:\/\/doi\.org\//, '') : '';
-      const pub = (src?.host_organization_name || '').toLowerCase();
-      const indexedIn = src?.indexed_in || [];
-      const biblio = w.biblio || {};
-      const pages = biblio.first_page && biblio.last_page
-        ? `${biblio.first_page}-${biblio.last_page}`
-        : (biblio.first_page || '');
-      return {
-        id: w.id,
-        title: w.title || 'Sin título',
-        authors: parseAuthors(w.authorships),
-        year: w.publication_year,
-        volume: biblio.volume || '',
-        issue: biblio.issue || '',
-        pages,
-        journal: src?.display_name || '',
-        publisher: src?.host_organization_name || '',
-        doi,
-        isOA: !!w.open_access?.is_oa,
-        oaUrl: w.open_access?.oa_url || (doi ? 'https://doi.org/' + doi : ''),
-        inScopus: indexedIn.includes('scopus'),
-        inDoaj: indexedIn.includes('doaj') || !!src?.is_in_doaj,
-        inPMC: indexedIn.includes('pubmed_central') || indexedIn.includes('pubmed'),
-        citations: w.cited_by_count || 0,
-        abstract: rebuildAbstract(w.abstract_inverted_index),
-        isMDPI: pub.includes('mdpi'),
-        isF1000: pub.includes('f1000'),
-        isElsevier: pub.includes('elsevier'),
-        isSpringer: pub.includes('springer'),
-        isWiley: pub.includes('wiley')
-      };
-    });
+    ALL_RESULTS = (data.results || []).map(parseOpenAlexWork);
     renderResults();
   } catch (e) {
     $('results-area').innerHTML = `<div class="empty"><p style="color:#c0392b">Error en la búsqueda: ${esc(e.message)}</p></div>`;
