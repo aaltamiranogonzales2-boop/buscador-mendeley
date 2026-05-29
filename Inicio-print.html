@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CitasFácil — Buscador académico</title>
+<link rel="stylesheet" href="assets/tokens.css">
+<style>
+  body { background: var(--paper); color: var(--ink-900); }
+  .page { max-width: 1140px; margin: 0 auto; padding: 0 40px; }
+
+  /* filete superior */
+  .topline { height: 4px; background: var(--blue-700); }
+
+  /* ---------- MASTHEAD ---------- */
+  .masthead { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 0 22px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand .cf-mark { width: 42px; height: 42px; font-size: 24px; }
+  .brand-txt h1 { font-family: var(--serif); font-weight: 600; font-size: 24px; letter-spacing: -0.01em; margin: 0; line-height: 1; white-space: nowrap; }
+  .brand-txt h1 b { color: var(--blue-700); font-weight: 600; }
+  .brand-txt .tag { display: flex; align-items: center; gap: 9px; margin-top: 6px; }
+  .kicker { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-500); }
+  .apa { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--blue-700); border: 1px solid var(--blue-100); background: var(--blue-50); border-radius: 4px; padding: 2px 6px; text-transform: uppercase; }
+
+  .acct { display: flex; align-items: center; gap: 13px; }
+  .acct .who { text-align: right; line-height: 1.2; }
+  .acct .who .lbl { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-400); }
+  .acct .who .nm { font-size: 14px; font-weight: 600; color: var(--ink-800); }
+  .acct .av { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(155deg, var(--blue-600), var(--blue-900)); color: var(--paper); display: grid; place-items: center; font-family: var(--serif); font-weight: 600; font-size: 15px; }
+  .acct .out { font-size: 12.5px; color: var(--ink-500); text-decoration: none; border-left: 1px solid var(--line); padding-left: 13px; }
+  .acct .out:hover { color: var(--blue-700); }
+
+  .rule { height: 1px; background: var(--line); }
+  .rule.strong { height: 2px; background: var(--ink-900); }
+
+  /* ---------- HERO ---------- */
+  .hero { display: grid; grid-template-columns: 1.55fr 0.95fr; gap: 56px; padding: 52px 0 46px; align-items: start; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--blue-700); margin: 0 0 20px; display: flex; align-items: center; gap: 12px; }
+  .eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .display { font-family: var(--serif); font-weight: 600; font-size: clamp(38px, 4.6vw, 58px); line-height: 1.04; letter-spacing: -0.025em; margin: 0 0 22px; color: var(--ink-900); text-wrap: balance; }
+  .display em { font-style: italic; color: var(--blue-700); }
+  .lede { font-size: 17px; line-height: 1.65; color: var(--ink-700); max-width: 52ch; margin: 0 0 32px; }
+  .lede b { color: var(--ink-900); font-weight: 600; }
+
+  /* buscador */
+  .searchwrap { border: 1.5px solid var(--ink-900); border-radius: 2px; background: var(--paper); display: flex; align-items: stretch; transition: box-shadow .15s; }
+  .searchwrap.focus { box-shadow: 0 0 0 3px var(--blue-100); border-color: var(--blue-700); }
+  .searchwrap .ic { display: grid; place-items: center; padding-left: 18px; color: var(--ink-500); }
+  .searchwrap input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--sans); font-size: 16px; padding: 18px 14px; color: var(--ink-900); }
+  .searchwrap input::placeholder { color: var(--ink-400); }
+  .searchwrap button { border: none; background: var(--blue-700); color: var(--paper); font-family: var(--sans); font-weight: 600; font-size: 15px; padding: 0 30px; cursor: pointer; display: flex; align-items: center; gap: 9px; transition: background .15s; }
+  .searchwrap button:hover { background: var(--blue-800); }
+
+  .filters { display: flex; align-items: center; gap: 22px; margin-top: 16px; flex-wrap: wrap; }
+  .yr { display: flex; align-items: center; gap: 9px; }
+  .yr .yl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-500); }
+  .yr input { width: 76px; font-family: var(--mono); font-size: 13px; border: none; border-bottom: 1.5px solid var(--line); background: transparent; padding: 5px 2px; outline: none; color: var(--ink-800); }
+  .yr input:focus { border-color: var(--blue-700); }
+  .yr .dash { color: var(--ink-400); }
+  .oa { display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 13.5px; color: var(--ink-700); user-select: none; }
+  .oa .box { width: 18px; height: 18px; border: 1.5px solid var(--ink-400); border-radius: 3px; display: grid; place-items: center; transition: all .14s; }
+  .oa .box svg { width: 11px; height: 11px; color: var(--paper); opacity: 0; }
+  .oa.on .box { background: var(--blue-700); border-color: var(--blue-700); }
+  .oa.on .box svg { opacity: 1; }
+  .oa.on { color: var(--ink-900); font-weight: 500; }
+
+  /* ---------- FICHA DE BIBLIOTECA (sesión Mendeley) ---------- */
+  .ficha { border: 1.5px solid var(--ink-900); border-radius: 2px; background: var(--paper-2); position: relative; }
+  .ficha::before { content: ""; position: absolute; inset: 4px; border: 1px solid var(--line); border-radius: 1px; pointer-events: none; }
+  .ficha-in { position: relative; padding: 20px 22px 22px; }
+  .ficha-top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 13px; border-bottom: 1px dashed var(--ink-400); margin-bottom: 16px; }
+  .ficha-top .t { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-500); }
+  .ficha-top .status { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-600); }
+  .ficha-top .status .d { width: 6px; height: 6px; border-radius: 50%; background: var(--green-600); }
+  .ficha .borrower { font-family: var(--serif); font-size: 21px; font-weight: 600; line-height: 1.1; margin-bottom: 3px; }
+  .ficha .org { font-size: 12.5px; color: var(--ink-500); margin-bottom: 20px; }
+  .ficha .row-lbl { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-500); margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+  .selectwrap { position: relative; }
+  .selectwrap select { width: 100%; appearance: none; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--ink-900); background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 11px 36px 11px 13px; cursor: pointer; outline: none; }
+  .selectwrap select:focus { border-color: var(--blue-700); }
+  .selectwrap .chev { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-500); pointer-events: none; }
+  .ficha .meta { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .ficha .meta .ct { font-size: 12.5px; color: var(--ink-600); }
+  .ficha .meta .ct b { font-family: var(--serif); font-size: 16px; color: var(--ink-900); }
+  .ficha .meta .out { font-size: 12px; color: var(--ink-500); text-decoration: none; }
+  .ficha .meta .out:hover { color: var(--blue-700); }
+  .ficha .note { font-size: 11.5px; line-height: 1.5; color: var(--ink-500); margin-top: 14px; }
+
+  /* ---------- FUENTES INDEXADAS ---------- */
+  .sources { display: flex; align-items: center; gap: 0; padding: 22px 0; flex-wrap: wrap; }
+  .sources .slbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-400); margin-right: 26px; }
+  .sources .list { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .sources .list span { font-family: var(--serif); font-size: 16px; color: var(--ink-700); padding: 0 18px; border-left: 1px solid var(--line); line-height: 1; }
+  .sources .list span:first-child { border-left: none; padding-left: 0; }
+
+  /* ---------- CÓMO FUNCIONA ---------- */
+  .section-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 34px; }
+  .section-head .n { font-family: var(--mono); font-size: 12px; color: var(--blue-600); letter-spacing: 0.08em; }
+  .section-head h2 { font-family: var(--serif); font-size: 27px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 2px solid var(--ink-900); }
+  .step { padding: 26px 26px 30px; border-right: 1px solid var(--line); }
+  .step:last-child { border-right: none; }
+  .step .si { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .step .si .num { font-family: var(--mono); font-size: 13px; color: var(--ink-400); letter-spacing: 0.1em; }
+  .step .si .ico { width: 34px; height: 34px; border: 1.5px solid var(--blue-700); border-radius: 50%; display: grid; place-items: center; color: var(--blue-700); }
+  .step .si .ico svg { width: 18px; height: 18px; }
+  .step h3 { font-family: var(--serif); font-size: 18px; font-weight: 600; margin: 0 0 8px; }
+  .step p { font-size: 13.5px; line-height: 1.6; color: var(--ink-600); margin: 0; }
+  .step p b { color: var(--ink-900); font-weight: 600; }
+
+  /* ---------- CITA AUTOMÁTICA .DOCX ---------- */
+  .auto { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; align-items: center; padding: 8px 0 0; }
+  .auto .info .badge { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber-600); background: var(--amber-100); border-radius: 4px; padding: 5px 10px; margin-bottom: 16px; }
+  .auto .info h2 { font-family: var(--serif); font-size: 27px; font-weight: 600; margin: 0 0 14px; letter-spacing: -0.01em; line-height: 1.15; }
+  .auto .info p { font-size: 14.5px; line-height: 1.68; color: var(--ink-700); margin: 0 0 12px; }
+  .auto .info p b { color: var(--ink-900); }
+  .auto .info .mk { font-family: var(--mono); font-size: 12.5px; background: var(--blue-50); border: 1px solid var(--blue-100); color: var(--blue-700); border-radius: 3px; padding: 1px 6px; }
+
+  .dropzone { border: 1.5px dashed var(--ink-400); border-radius: 3px; background: var(--paper-2); padding: 34px 30px; text-align: center; position: relative; transition: all .16s; }
+  .dropzone.has { border-style: solid; border-color: var(--blue-700); background: var(--blue-50); }
+  .dropzone .corner { position: absolute; width: 12px; height: 12px; border: 1.5px solid var(--ink-700); }
+  .dropzone .corner.tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+  .dropzone .corner.tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+  .dropzone .corner.bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+  .dropzone .corner.br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+  .dropzone .tray { width: 52px; height: 52px; margin: 0 auto 16px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--line); display: grid; place-items: center; color: var(--blue-700); }
+  .dropzone.has .tray { background: var(--blue-700); color: var(--paper); border-color: var(--blue-700); }
+  .dropzone .tray svg { width: 24px; height: 24px; }
+  .dropzone .dz-title { font-family: var(--serif); font-size: 17px; font-weight: 600; margin-bottom: 5px; }
+  .dropzone .dz-sub { font-size: 12.5px; color: var(--ink-500); margin-bottom: 18px; }
+  .dz-actions { display: flex; gap: 10px; justify-content: center; }
+  .btn-pick { font-family: var(--sans); font-weight: 600; font-size: 13.5px; border: 1px solid var(--ink-900); background: var(--paper); color: var(--ink-900); border-radius: 3px; padding: 11px 18px; cursor: pointer; }
+  .btn-pick:hover { background: var(--ink-900); color: var(--paper); }
+  .btn-proc { font-family: var(--sans); font-weight: 600; font-size: 13.5px; border: none; background: var(--blue-700); color: var(--paper); border-radius: 3px; padding: 11px 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; opacity: 0.4; pointer-events: none; transition: opacity .15s; }
+  .btn-proc.on { opacity: 1; pointer-events: auto; }
+  .btn-proc:hover { background: var(--blue-800); }
+  .btn-proc svg, .btn-pick svg { width: 15px; height: 15px; }
+  .fileinfo { font-family: var(--mono); font-size: 12px; color: var(--ink-600); margin-bottom: 16px; display: none; }
+  .fileinfo.show { display: block; }
+  .fileinfo b { color: var(--blue-700); }
+
+  /* ---------- FOOTER ---------- */
+  .foot { display: flex; align-items: center; justify-content: space-between; padding: 30px 0 50px; margin-top: 56px; border-top: 1px solid var(--line); }
+  .foot .stat { display: flex; align-items: baseline; gap: 10px; }
+  .foot .stat .big { font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--ink-900); }
+  .foot .stat .lbl { font-size: 13px; color: var(--ink-500); }
+  .foot .legal { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--ink-400); text-transform: uppercase; }
+
+  .blockgap { padding: 30px 0; }
+
+  @media (max-width: 940px) {
+    .hero { grid-template-columns: 1fr; gap: 40px; }
+    .auto { grid-template-columns: 1fr; gap: 28px; }
+    .steps { grid-template-columns: 1fr; }
+    .step { border-right: none; border-bottom: 1px solid var(--line); }
+    .step:last-child { border-bottom: none; }
+  }
+  @media (max-width: 620px) {
+    .page { padding: 0 22px; }
+    .acct .who { display: none; }
+    .searchwrap button span { display: none; }
+    .searchwrap button { padding: 0 20px; }
+  }
+</style>
+<style id="print-styles">
+  @page { size: A4 portrait; margin: 1.4cm; }
+  @media print {
+    html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    * { transition: none !important; }
+    .topline { display: none; }
+    .page { max-width: 100%; padding: 0; }
+
+    /* sin interacciones de pantalla */
+    .acct .out, .ficha .meta .out, a { text-decoration: none; }
+
+    /* hero apilado y compacto para impresión */
+    .hero { grid-template-columns: 1fr; gap: 26px; padding: 22px 0 26px; }
+    .display { font-size: 40px; }
+    .lede { max-width: 100%; }
+
+    /* evitar cortes feos */
+    .masthead, .ficha, .auto, .foot, .sources { break-inside: avoid; }
+    .steps { break-inside: avoid; }
+    .step { break-inside: avoid; }
+    .section-head { break-after: avoid; }
+    .blockgap { padding: 22px 0; }
+
+    /* la zona de carga se mantiene como ilustración estática */
+    .dz-actions { display: none; }
+    .dropzone { padding: 26px 30px; }
+
+    .foot { margin-top: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= ICONOS PROPIOS ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="d-search"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M20 20l-4.7-4.7" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></g>
+    <g id="d-check"><path d="M4.5 12.5l4.5 4.5 10.5-11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="d-chevron"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="d-folder"><path d="M3 6.5A1.5 1.5 0 014.5 5h4l2 2.2h7A1.5 1.5 0 0119 8.7V17a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 013 17z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></g>
+    <g id="d-key"><circle cx="8" cy="14" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 12l8-8M16 4l3 0 0 3M14 7l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+    <g id="d-book"><path d="M12 6.5C10.5 5.2 8 4.8 4.5 5.2V18c3.5-.4 6 0 7.5 1.3 1.5-1.3 4-1.7 7.5-1.3V5.2C16 4.8 13.5 5.2 12 6.5z" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round"/><path d="M12 6.5v12.8" stroke="currentColor" stroke-width="1.4"/></g>
+    <g id="d-upload"><path d="M5 15v2.5A1.5 1.5 0 006.5 19h11a1.5 1.5 0 001.5-1.5V15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 14.5V4.5M8 8l4-3.5L16 8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="d-quote"><path d="M5 14c0-3 1.6-5.2 4.4-6.2l.6 1.5C8.3 10 7.5 11 7.4 12.2H10V17H5zM14 14c0-3 1.6-5.2 4.4-6.2l.6 1.5C17.3 10 16.5 11 16.4 12.2H19V17h-5z" fill="currentColor"/></g>
+    <g id="d-arrow"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="d-cog"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
+  </defs>
+</svg>
+
+<div class="topline"></div>
+
+<div class="page">
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <div class="brand">
+      <span class="cf-mark"><span>&ldquo;</span></span>
+      <div class="brand-txt">
+        <h1>Citas<b>Fácil</b></h1>
+        <div class="tag">
+          <span class="kicker">Buscador académico</span>
+          <span class="apa">APA 7</span>
+        </div>
+      </div>
+    </div>
+    <div class="acct">
+      <div class="who">
+        <div class="lbl">Sesión Mendeley</div>
+        <div class="nm">Antony Altamirano</div>
+      </div>
+      <div class="av">AA</div>
+      <a class="out" href="#">Cerrar sesión</a>
+    </div>
+  </header>
+  <div class="rule strong"></div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-main">
+      <p class="eyebrow">Más de 240 millones de artículos</p>
+      <h1 class="display">Busca la literatura. Deja que las <em>citas</em> se ordenen solas.</h1>
+      <p class="lede">Consulta seis bases científicas a la vez y <b>vincula cada referencia a tu biblioteca de Mendeley</b> — sin copiar, pegar ni dar formato a mano.</p>
+
+      <div class="searchwrap" id="sw">
+        <span class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><use href="#d-search"/></svg></span>
+        <input id="q" placeholder="Palabras clave, título, autor — o DOI, PMID, ArXiv ID, ISBN…">
+        <button><svg viewBox="0 0 24 24" width="18" height="18"><use href="#d-search"/></svg><span>Buscar</span></button>
+      </div>
+
+      <div class="filters">
+        <div class="yr">
+          <span class="yl">Año</span>
+          <input id="yf" placeholder="Desde" inputmode="numeric">
+          <span class="dash">—</span>
+          <input id="yt" placeholder="Hasta" inputmode="numeric">
+        </div>
+        <div class="oa" id="oa">
+          <span class="box"><svg viewBox="0 0 24 24"><use href="#d-check"/></svg></span>
+          Solo acceso abierto
+        </div>
+      </div>
+    </div>
+
+    <!-- FICHA DE BIBLIOTECA -->
+    <aside class="ficha">
+      <div class="ficha-in">
+        <div class="ficha-top">
+          <span class="t">Ficha de biblioteca</span>
+          <span class="status"><span class="d"></span>Conectado</span>
+        </div>
+        <div class="borrower">Antony Altamirano</div>
+        <div class="org">Biblioteca personal · Mendeley</div>
+
+        <div class="row-lbl"><svg viewBox="0 0 24 24" width="13" height="13" style="color:var(--ink-500)"><use href="#d-folder"/></svg> Carpeta activa</div>
+        <div class="selectwrap">
+          <select id="folder">
+            <option>Toda la biblioteca</option>
+            <option>Tesis — Capítulo 2</option>
+            <option>Revisión sistemática 2025</option>
+            <option>Metodología</option>
+            <option>Por leer</option>
+          </select>
+          <span class="chev"><svg viewBox="0 0 24 24" width="16" height="16"><use href="#d-chevron"/></svg></span>
+        </div>
+
+        <div class="meta">
+          <span class="ct"><b>11</b> carpetas sincronizadas</span>
+          <a class="out" href="#">Administrar</a>
+        </div>
+        <p class="note">Los artículos que guardes y las citas del <span class="mono">.docx</span> que subas se buscarán dentro de esta carpeta.</p>
+      </div>
+    </aside>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- FUENTES -->
+  <div class="sources">
+    <span class="slbl">Fuentes indexadas</span>
+    <div class="list">
+      <span>OpenAlex</span><span>Scopus</span><span>Web of Science</span><span>MDPI</span><span>F1000</span><span>DOAJ</span>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- CÓMO FUNCIONA -->
+  <section class="blockgap">
+    <div class="section-head">
+      <span class="n">§ 01</span>
+      <h2>Cómo funciona</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="si"><span class="num">01</span><span class="ico"><svg viewBox="0 0 24 24"><use href="#d-key"/></svg></span></div>
+        <h3>Inicia sesión con Mendeley</h3>
+        <p>Conecta tu cuenta y elige la <b>carpeta activa</b> donde se guardará todo lo que encuentres.</p>
+      </div>
+      <div class="step">
+        <div class="si"><span class="num">02</span><span class="ico"><svg viewBox="0 0 24 24"><use href="#d-book"/></svg></span></div>
+        <h3>Busca y guarda artículos</h3>
+        <p>Filtra por año y acceso abierto. Guarda en tu biblioteca con un clic, listo para citar.</p>
+      </div>
+      <div class="step">
+        <div class="si"><span class="num">03</span><span class="ico"><svg viewBox="0 0 24 24"><use href="#d-quote"/></svg></span></div>
+        <h3>Sube tu <span class="mono" style="font-size:0.85em">.docx</span> y vincula</h3>
+        <p>Detectamos las citas del documento y las enlazamos con <b>Mendeley Cite</b> automáticamente.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- CITA AUTOMÁTICA -->
+  <section class="blockgap auto">
+    <div class="info">
+      <span class="badge"><svg viewBox="0 0 24 24" width="13" height="13"><use href="#d-cog"/></svg> Cita automática</span>
+      <h2>Vincula las citas de tu documento</h2>
+      <p>Sube tu <b>.docx</b>. Detectamos las citas tipo <span class="mk">(Autor, 2024)</span> o <span class="mk">Autor et al. (2024)</span> y las cruzamos con tu biblioteca de Mendeley, devolviéndote cada coincidencia en un campo <b>Mendeley&nbsp;Cite</b>.</p>
+      <p>Al abrir el <b>.docx</b> en Word, pulsa <i>Insert Bibliography</i> y se genera la lista de referencias. Las que no estén en tu biblioteca se marcan en rojo. Tu formato original <b>(negritas, encabezados, listas, tablas)</b> se preserva.</p>
+    </div>
+
+    <div class="dropzone" id="dz">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="tray"><svg viewBox="0 0 24 24"><use href="#d-upload"/></svg></div>
+      <div class="dz-title" id="dzTitle">Arrastra tu documento aquí</div>
+      <div class="dz-sub">Formato Word (.docx) · hasta 25&nbsp;MB</div>
+      <div class="fileinfo" id="fileinfo"></div>
+      <div class="dz-actions">
+        <button class="btn-pick" id="pick">Seleccionar archivo</button>
+        <button class="btn-proc" id="proc"><svg viewBox="0 0 24 24"><use href="#d-arrow"/></svg> Procesar documento</button>
+      </div>
+      <input type="file" id="file" accept=".docx" hidden>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="foot">
+    <div class="stat">
+      <span class="big">240 M+</span>
+      <span class="lbl">artículos académicos indexados</span>
+    </div>
+    <div class="legal">CitasFácil · Mendeley Cite · APA 7</div>
+  </footer>
+</div>
+
+<script>
+  // foco buscador
+  const sw = document.getElementById('sw'), q = document.getElementById('q');
+  q.addEventListener('focus', ()=> sw.classList.add('focus'));
+  q.addEventListener('blur', ()=> sw.classList.remove('focus'));
+
+  // acceso abierto
+  const oa = document.getElementById('oa');
+  oa.addEventListener('click', ()=> oa.classList.toggle('on'));
+
+  // años solo dígitos
+  ['yf','yt'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.addEventListener('input', ()=> el.value = el.value.replace(/\D/g,'').slice(0,4));
+  });
+
+  // dropzone
+  const dz = document.getElementById('dz'), file = document.getElementById('file'),
+        pick = document.getElementById('pick'), proc = document.getElementById('proc'),
+        info = document.getElementById('fileinfo'), dzTitle = document.getElementById('dzTitle');
+  pick.addEventListener('click', ()=> file.click());
+  function setFile(name){
+    info.innerHTML = 'Archivo: <b>'+name+'</b>';
+    info.classList.add('show');
+    dz.classList.add('has');
+    dzTitle.textContent = 'Documento listo para procesar';
+    proc.classList.add('on');
+  }
+  file.addEventListener('change', ()=>{ if(file.files[0]) setFile(file.files[0].name); });
+  ['dragover','dragenter'].forEach(e=> dz.addEventListener(e, ev=>{ ev.preventDefault(); dz.classList.add('has'); }));
+  dz.addEventListener('dragleave', ()=>{ if(!file.files[0]) dz.classList.remove('has'); });
+  dz.addEventListener('drop', ev=>{ ev.preventDefault(); if(ev.dataTransfer.files[0]) setFile(ev.dataTransfer.files[0].name); });
+  proc.addEventListener('click', ()=>{ proc.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15"><use href="#d-check"/></svg> Procesando…'; });
+</script>
+<script>
+  // Auto-impresión: esperar fuentes + breve margen
+  window.addEventListener('load', function () {
+    var go = function () { setTimeout(function () { window.print(); }, 500); };
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(go);
+    } else {
+      go();
+    }
+  });
+</script>
+</body>
+</html>

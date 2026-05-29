@@ -3,163 +3,480 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buscador Académico — Mendeley</title>
+<title>CitasFácil — Buscador académico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --serif: 'Newsreader', 'Source Serif Pro', Georgia, serif;
+    --sans: 'Geist', 'Söhne', system-ui, -apple-system, sans-serif;
+    --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+    --paper: #faf9f5;
+    --paper-2: #f3f1ea;
+
+    --ink-900: #0a0d18;
+    --ink-800: #1a1e2a;
+    --ink-700: #2d3340;
+    --ink-600: #4a505d;
+    --ink-500: #6b7280;
+    --ink-400: #9ca3af;
+
+    --line: #d8d5cc;
+    --line-2: #e8e5dc;
+
+    --blue-900: #0a1d4f;
+    --blue-800: #112d75;
+    --blue-700: #1e40af;
+    --blue-600: #2563eb;
+    --blue-100: #c7d4f0;
+    --blue-50: #eff3fb;
+
+    --green-700: #15803d;
+    --green-600: #16a34a;
+    --green-50: #f0fdf4;
+
+    --amber-700: #b45309;
+    --amber-600: #d97706;
+    --amber-100: #fef3c7;
+    --amber-50: #fffbeb;
+
+    --red-700: #991b1b;
+    --red-600: #b91c1c;
+    --red-50: #fef2f2;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f4f0; color: #1a1a1a; font-size: 14px; }
-  .app { max-width: 820px; margin: 0 auto; padding: 20px 16px; }
-  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  h1 .sub { font-size: 13px; font-weight: 400; color: #666; }
+  html, body { background: var(--paper); color: var(--ink-900); }
+  body { font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
-  /* Token zone */
-  .token-zone { border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #e0ddd6; background: #fff; }
-  .token-zone.ok { background: #f0faf4; border-color: #6fcf97; }
-  .token-zone.err { background: #fff5f5; border-color: #f5a0a0; }
-  .token-status { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-  .token-status.ok { color: #1a7a3e; }
-  .token-status.err { color: #c0392b; }
-  .token-status.idle { color: #444; }
-  .token-hint { font-size: 12px; color: #666; margin-bottom: 10px; line-height: 1.6; }
-  .token-hint a { color: #2563eb; }
-  .token-row { display: flex; gap: 8px; }
-  .token-row input { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-  .token-row input:focus { outline: none; border-color: #2563eb; }
+  .page { max-width: 1140px; margin: 0 auto; padding: 0 40px; }
 
-  /* Buttons */
-  .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.12s; font-family: inherit; }
-  .btn:hover:not(:disabled) { background: #f0eeea; }
-  .btn:disabled { opacity: 0.5; cursor: default; }
-  .btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-  .btn-primary:hover:not(:disabled) { background: #333; }
-  .btn-sm { padding: 4px 9px; font-size: 11px; }
-  .btn-green { background: #f0faf4; color: #1a7a3e; border-color: #6fcf97; }
-  .btn-green:hover:not(:disabled) { background: #e0f5e9; }
-  .btn-err { color: #c0392b; border-color: #f5a0a0; }
+  /* filete superior */
+  .topline { height: 4px; background: var(--blue-700); }
 
-  /* Search */
-  .search-box { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #e0ddd6; }
-  .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .search-row input { flex: 1; padding: 9px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; font-family: inherit; }
-  .search-row input:focus { outline: none; border-color: #2563eb; }
-  .search-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .search-filters input[type=number] { width: 100px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 12px; font-family: inherit; }
-  .search-filters label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #666; cursor: pointer; }
+  /* ============== MASTHEAD ============== */
+  .masthead { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 0 22px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .cf-mark { width: 42px; height: 42px; background: var(--ink-900); color: var(--paper); display: grid; place-items: center; font-family: var(--serif); font-weight: 600; font-size: 26px; line-height: 1; border-radius: 2px; }
+  .cf-mark span { transform: translateY(-3px); display: inline-block; }
+  .brand-txt h1 { font-family: var(--serif); font-weight: 600; font-size: 24px; letter-spacing: -0.01em; line-height: 1; white-space: nowrap; margin: 0; }
+  .brand-txt h1 b { color: var(--blue-700); font-weight: 600; }
+  .brand-txt .tag { display: flex; align-items: center; gap: 9px; margin-top: 6px; }
+  .kicker { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-500); }
+  .apa { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--blue-700); border: 1px solid var(--blue-100); background: var(--blue-50); border-radius: 4px; padding: 2px 6px; text-transform: uppercase; }
 
-  /* Chips */
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-  .chip { padding: 4px 11px; border-radius: 20px; border: 1px solid #ddd; background: transparent; font-size: 11px; color: #666; cursor: pointer; transition: all 0.12s; font-family: inherit; }
-  .chip:hover { background: #f0eeea; }
-  .chip.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; font-weight: 500; }
+  .acct { display: flex; align-items: center; gap: 13px; }
+  .acct .who { text-align: right; line-height: 1.2; }
+  .acct .who .lbl { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-400); }
+  .acct .who .nm { font-size: 14px; font-weight: 600; color: var(--ink-800); margin-top: 2px; }
+  .acct .av { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(155deg, var(--blue-600), var(--blue-900)); color: var(--paper); display: grid; place-items: center; font-family: var(--serif); font-weight: 600; font-size: 15px; }
+  .acct .out { font-size: 12.5px; color: var(--ink-500); background: transparent; border: none; border-left: 1px solid var(--line); padding: 4px 0 4px 13px; cursor: pointer; font-family: inherit; transition: color .14s; }
+  .acct .out:hover { color: var(--blue-700); }
+  .acct .out:focus-visible { outline: 2px solid var(--blue-100); outline-offset: 2px; }
 
-  /* Results */
-  .results { display: flex; flex-direction: column; gap: 10px; }
-  .card { background: #fff; border: 1px solid #e0ddd6; border-radius: 12px; padding: 12px 14px; transition: border-color 0.15s; }
-  .card.saved { border-color: #6fcf97; }
-  .card-title { font-size: 13px; font-weight: 600; color: #2563eb; line-height: 1.4; margin-bottom: 4px; text-decoration: none; display: block; }
-  .card-title:hover { text-decoration: underline; }
-  .card-meta { font-size: 11px; color: #888; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
-  .badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
-  .badge-blue { background: #dbeafe; color: #1d4ed8; }
-  .badge-green { background: #dcfce7; color: #166534; }
-  .badge-orange { background: #fef3c7; color: #92400e; }
-  .badge-gray { background: #f1f0ec; color: #555; }
-  .abstract { font-size: 11px; color: #666; line-height: 1.7; margin-bottom: 8px; display: none; }
-  .abstract.show { display: block; }
-  .card-actions { display: flex; gap: 5px; flex-wrap: wrap; }
-  .btn-cite { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+  .btn-login { display: inline-flex; align-items: center; gap: 9px; padding: 10px 16px; background: var(--ink-900); color: var(--paper); border: none; border-radius: 2px; font-family: var(--sans); font-weight: 600; font-size: 13.5px; cursor: pointer; transition: background .14s, transform .14s; }
+  .btn-login:hover { background: var(--blue-800); }
+  .btn-login:active { transform: translateY(1px); }
+  .btn-login:focus-visible { outline: 2px solid var(--blue-100); outline-offset: 2px; }
+  .ic-m { display: inline-grid; place-items: center; width: 18px; height: 18px; background: #a6212e; color: #fff; border-radius: 3px; font-size: 11px; font-weight: 700; font-family: var(--sans); }
 
-  /* Empty / loading */
-  .empty { text-align: center; padding: 48px 0; color: #999; }
-  .empty svg { margin-bottom: 12px; opacity: 0.4; }
-  .loading { text-align: center; padding: 32px; color: #888; font-size: 13px; }
+  .rule { height: 1px; background: var(--line); }
+  .rule.strong { height: 2px; background: var(--ink-900); }
 
+  /* ============== HERO ============== */
+  .hero { display: grid; grid-template-columns: 1.55fr 0.95fr; gap: 56px; padding: 52px 0 46px; align-items: start; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--blue-700); margin: 0 0 20px; display: flex; align-items: center; gap: 12px; }
+  .eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .display { font-family: var(--serif); font-weight: 600; font-size: clamp(36px, 4.6vw, 56px); line-height: 1.04; letter-spacing: -0.025em; margin: 0 0 22px; color: var(--ink-900); text-wrap: balance; }
+  .display em { font-style: italic; color: var(--blue-700); font-family: var(--serif); }
+  .lede { font-size: 17px; line-height: 1.65; color: var(--ink-700); max-width: 52ch; margin: 0 0 32px; }
+  .lede b { color: var(--ink-900); font-weight: 600; }
+
+  /* buscador */
+  .searchwrap { border: 1.5px solid var(--ink-900); border-radius: 2px; background: var(--paper); display: flex; align-items: stretch; transition: box-shadow .15s; }
+  .searchwrap.focus { box-shadow: 0 0 0 3px var(--blue-100); border-color: var(--blue-700); }
+  .searchwrap .ic { display: grid; place-items: center; padding-left: 18px; color: var(--ink-500); }
+  .searchwrap input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--sans); font-size: 15.5px; padding: 18px 14px; color: var(--ink-900); }
+  .searchwrap input::placeholder { color: var(--ink-400); }
+  .searchwrap button { border: none; background: var(--blue-700); color: var(--paper); font-family: var(--sans); font-weight: 600; font-size: 15px; padding: 0 30px; cursor: pointer; display: flex; align-items: center; gap: 9px; transition: background .15s; }
+  .searchwrap button:hover { background: var(--blue-800); }
+
+  .filters { display: flex; align-items: center; gap: 22px; margin-top: 16px; flex-wrap: wrap; }
+  .yr { display: flex; align-items: center; gap: 9px; }
+  .yr .yl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-500); }
+  .yr input { width: 76px; font-family: var(--mono); font-size: 13px; border: none; border-bottom: 1.5px solid var(--line); background: transparent; padding: 5px 2px; outline: none; color: var(--ink-800); }
+  .yr input:focus { border-color: var(--blue-700); }
+  .yr .dash { color: var(--ink-400); }
+  .oa { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: 13.5px; color: var(--ink-700); user-select: none; }
+  .oa .box { width: 18px; height: 18px; border: 1.5px solid var(--ink-400); border-radius: 3px; display: grid; place-items: center; transition: all .14s; }
+  .oa .box svg { width: 11px; height: 11px; color: var(--paper); opacity: 0; }
+  .oa input { position: absolute; opacity: 0; pointer-events: none; }
+  .oa input:checked ~ .box { background: var(--blue-700); border-color: var(--blue-700); }
+  .oa input:checked ~ .box svg { opacity: 1; }
+  .oa input:focus-visible ~ .box { outline: 2px solid var(--blue-100); outline-offset: 2px; }
+
+  /* ============== FICHA ============== */
+  .ficha { border: 1.5px solid var(--ink-900); border-radius: 2px; background: var(--paper-2); position: relative; }
+  .ficha::before { content: ""; position: absolute; inset: 4px; border: 1px solid var(--line); border-radius: 1px; pointer-events: none; }
+  .ficha-in { position: relative; padding: 20px 22px 22px; }
+  .ficha-top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 13px; border-bottom: 1px dashed var(--ink-400); margin-bottom: 16px; gap: 8px; }
+  .ficha-top .t { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-500); }
+  .ficha-top .status { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-700); }
+  .ficha-top .status .d { width: 6px; height: 6px; border-radius: 50%; background: var(--green-600); }
+  .ficha-top .status.off { color: var(--ink-400); }
+  .ficha-top .status.off .d { background: var(--ink-400); }
+  .ficha-top .status.err { color: var(--red-700); }
+  .ficha-top .status.err .d { background: var(--red-600); }
+  .borrower { font-family: var(--serif); font-size: 21px; font-weight: 600; line-height: 1.15; margin-bottom: 3px; color: var(--ink-900); }
+  .ficha .org { font-size: 12.5px; color: var(--ink-500); margin-bottom: 20px; }
+  .ficha-help { font-size: 13.5px; line-height: 1.55; color: var(--ink-700); margin: 8px 0 18px; }
+  .ficha .row-lbl { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-500); margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+  .selectwrap { position: relative; }
+  .selectwrap select { width: 100%; appearance: none; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--ink-900); background: var(--paper); border: 1px solid var(--line); border-radius: 3px; padding: 11px 36px 11px 13px; cursor: pointer; outline: none; transition: border-color .15s; }
+  .selectwrap select:hover { border-color: var(--ink-400); }
+  .selectwrap select:focus { border-color: var(--blue-700); box-shadow: 0 0 0 3px var(--blue-50); }
+  .selectwrap .chev { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-500); pointer-events: none; }
+  .ficha .meta { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--line); gap: 8px; flex-wrap: wrap; }
+  .ficha .meta .ct { font-size: 12.5px; color: var(--ink-600); }
+  .ficha .meta .ct b { font-family: var(--serif); font-size: 16px; color: var(--ink-900); font-weight: 600; }
+  .ficha .note { font-size: 11.5px; line-height: 1.5; color: var(--ink-500); margin-top: 14px; }
+  .ficha .note .mono { font-family: var(--mono); font-size: 11px; }
+  .ficha .err-msg { font-size: 12px; color: var(--red-700); background: var(--red-50); border: 1px solid #f5a0a0; border-radius: 3px; padding: 8px 10px; margin-top: 12px; line-height: 1.5; }
+  .ficha .btn-login { width: 100%; justify-content: center; padding: 12px 16px; font-size: 14px; }
+
+  /* ============== SOURCES ============== */
+  .sources { display: flex; align-items: center; gap: 0; padding: 22px 0; flex-wrap: wrap; }
+  .sources .slbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-400); margin-right: 26px; }
+  .sources .list { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .sources .list span { font-family: var(--serif); font-size: 16px; color: var(--ink-700); padding: 0 18px; border-left: 1px solid var(--line); line-height: 1; }
+  .sources .list span:first-child { border-left: none; padding-left: 0; }
+
+  /* ============== SECTION HEAD ============== */
+  .blockgap { padding: 36px 0; }
+  .section-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 30px; }
+  .section-head .n { font-family: var(--mono); font-size: 12px; color: var(--blue-600); letter-spacing: 0.08em; }
+  .section-head h2 { font-family: var(--serif); font-size: 27px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .section-head .aux { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-400); margin-left: auto; }
+
+  /* ============== CHIPS (catálogo) ============== */
+  .chips { display: flex; align-items: center; gap: 0; padding: 18px 0 22px; flex-wrap: wrap; }
+  .ch-lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-400); margin-right: 18px; }
+  .ch { display: inline-flex; align-items: baseline; gap: 8px; background: transparent; border: none; border-left: 1px solid var(--line); padding: 4px 16px; cursor: pointer; font-family: var(--sans); transition: color .15s; }
+  .ch:first-of-type { border-left: none; padding-left: 0; }
+  .ch .ch-tx { font-size: 14px; color: var(--ink-600); font-weight: 500; }
+  .ch .ch-ct { font-family: var(--mono); font-size: 11px; color: var(--ink-400); }
+  .ch:hover .ch-tx { color: var(--ink-900); }
+  .ch.active .ch-tx { color: var(--blue-700); font-weight: 600; }
+  .ch.active .ch-ct { color: var(--blue-700); }
+  .ch:focus-visible { outline: 2px solid var(--blue-100); outline-offset: 2px; }
+
+  /* ============== RESULTS (records) ============== */
+  .results { display: flex; flex-direction: column; }
+  .rec { padding: 26px 0 24px; border-top: 1px solid var(--line); position: relative; }
+  .rec:first-child { border-top: 2px solid var(--ink-900); }
+  .rec.saved { background: linear-gradient(90deg, var(--green-50) 0%, transparent 40%); }
+  .rec-num { position: absolute; top: 26px; left: -32px; font-family: var(--mono); font-size: 11px; color: var(--ink-400); letter-spacing: 0.05em; }
+  @media (max-width: 980px) { .rec-num { position: static; display: block; margin-bottom: 6px; } }
+  .rec-title { display: block; font-family: var(--serif); font-size: 21px; line-height: 1.25; font-weight: 600; color: var(--ink-900); text-decoration: none; margin-bottom: 8px; text-wrap: balance; max-width: 56ch; }
+  .rec-title:hover { color: var(--blue-700); }
+  .rec-title .ext { color: var(--ink-400); font-size: 0.7em; vertical-align: 6px; margin-left: 4px; transition: color .15s; }
+  .rec-title:hover .ext { color: var(--blue-700); }
+  .rec-meta { font-size: 13.5px; color: var(--ink-600); margin-bottom: 12px; line-height: 1.5; }
+  .rec-meta .rec-auth { color: var(--ink-800); }
+  .rec-meta .dot { color: var(--ink-400); padding: 0 6px; }
+  .rec-meta .rec-year { font-family: var(--mono); font-size: 12.5px; }
+  .rec-meta .rec-src { font-style: italic; color: var(--ink-700); }
+  .rec-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
+  .rt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; border: 1px solid; }
+  .rt-sci { background: var(--blue-50); color: var(--blue-700); border-color: var(--blue-100); }
+  .rt-oa { background: var(--green-50); color: var(--green-700); border-color: #bde0c5; }
+  .rt-pub { background: var(--paper-2); color: var(--ink-700); border-color: var(--line); }
+  .rt-book { background: var(--amber-100); color: var(--amber-700); border-color: #fbcf75; }
+  .rt-cite { background: transparent; color: var(--ink-500); border-color: var(--line); }
+  .rec-abs-tog { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-500); background: transparent; border: none; cursor: pointer; padding: 4px 0; margin-bottom: 6px; transition: color .15s; }
+  .rec-abs-tog:hover { color: var(--blue-700); }
+  .rec-abs { font-size: 14px; line-height: 1.65; color: var(--ink-700); margin: 6px 0 14px; max-width: 70ch; display: none; }
+  .rec-abs.show { display: block; }
+  .rec-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .r-act { font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--ink-700); background: var(--paper); border: 1px solid var(--line); border-radius: 2px; padding: 7px 13px; cursor: pointer; transition: all .14s; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+  .r-act:hover:not(:disabled) { border-color: var(--ink-900); background: var(--ink-900); color: var(--paper); }
+  .r-act:disabled { opacity: 0.55; cursor: default; }
+  .r-act.ok { background: var(--green-50); color: var(--green-700); border-color: #bde0c5; }
+  .r-act.ok:disabled { opacity: 0.85; }
+  .r-act.err { color: var(--red-700); border-color: #f5a0a0; }
+  .r-cite { font-family: var(--mono); font-size: 12px; color: var(--ink-700); background: transparent; border: 1px solid var(--line); border-radius: 2px; padding: 6px 11px; cursor: pointer; transition: all .14s; }
+  .r-cite:hover { background: var(--blue-50); color: var(--blue-700); border-color: var(--blue-100); }
+
+  /* empty / loading */
+  .empty { text-align: center; padding: 80px 0 40px; color: var(--ink-400); }
+  .empty .icn { width: 40px; height: 40px; margin: 0 auto 14px; color: var(--ink-400); }
+  .empty .em-h { font-family: var(--serif); font-size: 20px; font-weight: 500; color: var(--ink-700); margin-bottom: 6px; }
+  .empty .em-p { font-size: 13.5px; color: var(--ink-500); }
+  .loading { text-align: center; padding: 60px 0; color: var(--ink-500); font-size: 13.5px; font-family: var(--mono); letter-spacing: 0.04em; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner { display: inline-block; animation: spin 0.7s linear infinite; }
+  .spinner { display: inline-block; animation: spin .9s linear infinite; }
 
-  .notice { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #92400e; margin-bottom: 12px; line-height: 1.6; }
-  .notice a { color: #92400e; font-weight: 600; }
+  /* ============== STEPS ============== */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 2px solid var(--ink-900); }
+  .step { padding: 26px 26px 30px; border-right: 1px solid var(--line); }
+  .step:last-child { border-right: none; padding-right: 0; }
+  .step:first-child { padding-left: 0; }
+  .step .si { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .step .si .num { font-family: var(--mono); font-size: 13px; color: var(--ink-400); letter-spacing: 0.1em; }
+  .step .si .ico { width: 34px; height: 34px; border: 1.5px solid var(--blue-700); border-radius: 50%; display: grid; place-items: center; color: var(--blue-700); }
+  .step .si .ico svg { width: 18px; height: 18px; }
+  .step h3 { font-family: var(--serif); font-size: 18px; font-weight: 600; margin: 0 0 8px; color: var(--ink-900); }
+  .step p { font-size: 13.5px; line-height: 1.6; color: var(--ink-600); margin: 0; }
+  .step p b { color: var(--ink-900); font-weight: 600; }
+  .step .mono { font-family: var(--mono); font-size: 12.5px; }
 
-  /* Upload box */
-  .upload-box { background: #fff; border: 1px solid #e0ddd6; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
-  .upload-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
-  .upload-box .hint { font-size: 11px; color: #888; margin-bottom: 10px; line-height: 1.5; }
-  .upload-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .upload-row input[type=file] { flex: 1; min-width: 200px; padding: 6px; border: 1px dashed #ccc; border-radius: 8px; font-size: 12px; background: #fafafa; }
-  .upload-status { margin-top: 10px; font-size: 12px; color: #444; line-height: 1.6; }
-  .upload-status.err { color: #c0392b; }
-  .upload-status .stat-row { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
-  .stat { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-  .stat.found { background: #dcfce7; color: #166534; }
-  .stat.miss { background: #fee2e2; color: #991b1b; }
-  .stat.total { background: #f1f0ec; color: #555; }
-  .miss-list { background: #fff5f5; border: 1px solid #f5a0a0; border-radius: 8px; padding: 8px 12px; margin-top: 8px; max-height: 200px; overflow-y: auto; }
-  .miss-list .miss-item { font-size: 11px; color: #991b1b; padding: 2px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  /* ============== AUTO (CITA) ============== */
+  .auto { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; align-items: start; }
+  .auto-info .badge { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber-700); background: var(--amber-100); border-radius: 4px; padding: 5px 10px; margin-bottom: 16px; }
+  .auto-info h2 { font-family: var(--serif); font-size: 27px; font-weight: 600; margin: 0 0 14px; letter-spacing: -0.01em; line-height: 1.15; color: var(--ink-900); }
+  .auto-info p { font-size: 14.5px; line-height: 1.68; color: var(--ink-700); margin: 0 0 12px; }
+  .auto-info p b { color: var(--ink-900); }
+  .auto-info .mk { font-family: var(--mono); font-size: 12.5px; background: var(--blue-50); border: 1px solid var(--blue-100); color: var(--blue-700); border-radius: 3px; padding: 1px 6px; }
 
-  .diag { margin-top: 10px; border: 1px solid #e0ddd6; border-radius: 8px; max-height: 380px; overflow-y: auto; background: #fafafa; }
-  .diag-head { padding: 8px 12px; background: #f0eeea; font-size: 12px; font-weight: 600; position: sticky; top: 0; }
-  .diag-row { padding: 8px 12px; border-top: 1px solid #e0ddd6; font-size: 11px; }
-  .diag-row.matched { background: #f0faf4; }
-  .diag-row.missed { background: #fff5f5; }
-  .diag-cite { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; margin-bottom: 4px; }
-  .diag-status { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-right: 6px; }
-  .diag-status.ok { background: #dcfce7; color: #166534; }
-  .diag-status.bad { background: #fee2e2; color: #991b1b; }
-  .diag-hit { color: #166534; font-size: 11px; margin-left: 4px; }
-  .diag-candidates { margin-top: 4px; padding-left: 12px; }
-  .diag-cand { color: #444; font-size: 10px; padding: 2px 0; }
-  .diag-cand b { color: #1a7a3e; }
+  .dropzone { border: 1.5px dashed var(--ink-400); border-radius: 3px; background: var(--paper-2); padding: 34px 30px; text-align: center; position: relative; transition: all .16s; }
+  .dropzone.has { border-style: solid; border-color: var(--blue-700); background: var(--blue-50); }
+  .dropzone .corner { position: absolute; width: 12px; height: 12px; border: 1.5px solid var(--ink-700); }
+  .dropzone .corner.tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+  .dropzone .corner.tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+  .dropzone .corner.bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+  .dropzone .corner.br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+  .dropzone .tray { width: 52px; height: 52px; margin: 0 auto 16px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--line); display: grid; place-items: center; color: var(--blue-700); transition: all .16s; }
+  .dropzone.has .tray { background: var(--blue-700); color: var(--paper); border-color: var(--blue-700); }
+  .dropzone .tray svg { width: 24px; height: 24px; }
+  .dz-title { font-family: var(--serif); font-size: 17px; font-weight: 600; margin-bottom: 5px; color: var(--ink-900); }
+  .dz-sub { font-size: 12.5px; color: var(--ink-500); margin-bottom: 18px; }
+  .dz-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .btn-pick { font-family: var(--sans); font-weight: 600; font-size: 13.5px; border: 1px solid var(--ink-900); background: var(--paper); color: var(--ink-900); border-radius: 3px; padding: 11px 18px; cursor: pointer; transition: background .14s, color .14s; }
+  .btn-pick:hover { background: var(--ink-900); color: var(--paper); }
+  .btn-proc { font-family: var(--sans); font-weight: 600; font-size: 13.5px; border: none; background: var(--blue-700); color: var(--paper); border-radius: 3px; padding: 11px 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background .15s, opacity .15s; }
+  .btn-proc:disabled { opacity: 0.35; cursor: default; }
+  .btn-proc:hover:not(:disabled) { background: var(--blue-800); }
+  .btn-proc svg, .btn-pick svg { width: 15px; height: 15px; }
+  .fileinfo { font-family: var(--mono); font-size: 12px; color: var(--ink-600); margin-bottom: 16px; display: none; }
+  .fileinfo.show { display: block; }
+  .fileinfo b { color: var(--blue-700); }
+
+  /* upload status & diagnostic */
+  .upload-status { margin-top: 18px; font-size: 13.5px; color: var(--ink-700); line-height: 1.6; }
+  .upload-status.err { color: var(--red-700); }
+  .upload-status .ux-head { font-family: var(--serif); font-size: 18px; font-weight: 600; color: var(--ink-900); margin-bottom: 10px; }
+  .stat-row { display: flex; gap: 0; margin: 12px 0 4px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .stat { padding: 14px 18px 14px 0; flex: 1; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: none; padding-right: 0; }
+  .stat .stat-n { font-family: var(--serif); font-size: 28px; font-weight: 600; line-height: 1; color: var(--ink-900); display: block; }
+  .stat.found .stat-n { color: var(--green-700); }
+  .stat.miss .stat-n { color: var(--red-700); }
+  .stat .stat-lbl { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-500); margin-top: 6px; display: block; }
+  .ux-help { font-size: 13.5px; line-height: 1.65; color: var(--ink-700); margin: 14px 0 6px; max-width: 60ch; }
+  .ux-help b { color: var(--ink-900); }
+  .ux-help em { font-style: italic; color: var(--blue-700); }
+  .miss-list { background: var(--red-50); border-left: 3px solid var(--red-600); padding: 10px 14px; margin-top: 12px; max-height: 200px; overflow-y: auto; }
+  .miss-list .miss-item { font-family: var(--mono); font-size: 11.5px; color: var(--red-700); padding: 2px 0; }
+
+  .diag { margin-top: 18px; border-top: 2px solid var(--ink-900); max-height: 480px; overflow-y: auto; background: var(--paper); }
+  .diag-head { padding: 12px 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-500); font-weight: 500; position: sticky; top: 0; background: var(--paper); border-bottom: 1px solid var(--line); z-index: 1; }
+  .diag-row { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .diag-row:last-child { border-bottom: none; }
+  .diag-cite { font-family: var(--mono); font-size: 13px; color: var(--ink-800); margin-left: 8px; }
+  .diag-status { display: inline-block; padding: 2px 8px; border-radius: 2px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; font-weight: 600; text-transform: uppercase; vertical-align: 1px; }
+  .diag-status.ok { background: var(--green-50); color: var(--green-700); border: 1px solid #bde0c5; }
+  .diag-status.bad { background: var(--red-50); color: var(--red-700); border: 1px solid #f5a0a0; }
+  .diag-hit { color: var(--green-700); font-size: 12.5px; margin-left: 28px; margin-top: 4px; font-style: italic; }
+  .diag-hit b { font-style: normal; color: var(--ink-800); }
+  .diag-search { font-size: 11.5px; color: var(--ink-500); margin: 4px 0 4px 28px; }
+  .diag-search code { font-family: var(--mono); background: var(--paper-2); padding: 1px 5px; border-radius: 2px; color: var(--ink-700); }
+  .diag-candidates { margin-top: 6px; padding-left: 28px; }
+  .diag-candidates .diag-cand-h { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-400); margin-bottom: 4px; }
+  .diag-cand { font-size: 12.5px; color: var(--ink-600); padding: 2px 0; line-height: 1.5; }
+  .diag-cand b { color: var(--ink-900); font-family: var(--serif); font-weight: 600; }
+
+  /* ============== FOOTER ============== */
+  .foot { display: flex; align-items: center; justify-content: space-between; padding: 30px 0 50px; margin-top: 56px; border-top: 1px solid var(--line); gap: 16px; flex-wrap: wrap; }
+  .foot .stat-foot { display: flex; align-items: baseline; gap: 10px; }
+  .foot .big { font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--ink-900); }
+  .foot .lbl { font-size: 13px; color: var(--ink-500); }
+  .foot .legal { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--ink-400); text-transform: uppercase; }
+
+  @media (max-width: 980px) {
+    .hero { grid-template-columns: 1fr; gap: 40px; }
+    .auto { grid-template-columns: 1fr; gap: 28px; }
+    .steps { grid-template-columns: 1fr; }
+    .step { border-right: none; border-bottom: 1px solid var(--line); padding: 22px 0; }
+    .step:last-child { border-bottom: none; }
+  }
+  @media (max-width: 640px) {
+    .page { padding: 0 22px; }
+    .acct .who { display: none; }
+    .searchwrap button span { display: none; }
+    .searchwrap button { padding: 0 20px; }
+    .stat-row { flex-direction: column; }
+    .stat { border-right: none; border-bottom: 1px solid var(--line); padding: 14px 0; }
+    .stat:last-child { border-bottom: none; }
+    .section-head h2 { font-size: 22px; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
-<div class="app">
-  <h1>🔬 Buscador Académico — Mendeley <span class="sub">APA 7</span></h1>
-  <p style="font-size:12px;color:#888;margin-bottom:16px;margin-top:2px">OpenAlex · Scopus · WoS · MDPI · F1000 · DOAJ</p>
 
-  <div class="notice">
-    ⚡ <strong>Cómo usar:</strong> Inicia sesión con tu cuenta de Mendeley, busca artículos, guárdalos en tu biblioteca y sube tu .docx para vincular las citas automáticamente con el plugin Mendeley Cite.
+<!-- ============== ICON LIBRARY ============== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="d-search"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M20 20l-4.7-4.7" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></g>
+    <g id="d-check"><path d="M4.5 12.5l4.5 4.5 10.5-11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="d-chevron"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="d-folder"><path d="M3 6.5A1.5 1.5 0 014.5 5h4l2 2.2h7A1.5 1.5 0 0119 8.7V17a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 013 17z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></g>
+    <g id="d-key"><circle cx="8" cy="14" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 12l8-8M16 4l3 0 0 3M14 7l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+    <g id="d-book"><path d="M12 6.5C10.5 5.2 8 4.8 4.5 5.2V18c3.5-.4 6 0 7.5 1.3 1.5-1.3 4-1.7 7.5-1.3V5.2C16 4.8 13.5 5.2 12 6.5z" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round"/><path d="M12 6.5v12.8" stroke="currentColor" stroke-width="1.4"/></g>
+    <g id="d-upload"><path d="M5 15v2.5A1.5 1.5 0 006.5 19h11a1.5 1.5 0 001.5-1.5V15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 14.5V4.5M8 8l4-3.5L16 8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="d-quote"><path d="M5 14c0-3 1.6-5.2 4.4-6.2l.6 1.5C8.3 10 7.5 11 7.4 12.2H10V17H5zM14 14c0-3 1.6-5.2 4.4-6.2l.6 1.5C17.3 10 16.5 11 16.4 12.2H19V17h-5z" fill="currentColor"/></g>
+    <g id="d-arrow"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g id="d-cog"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
+  </defs>
+</svg>
+
+<div class="topline"></div>
+
+<div class="page">
+
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <div class="brand">
+      <span class="cf-mark"><span>&ldquo;</span></span>
+      <div class="brand-txt">
+        <h1>Citas<b>Fácil</b></h1>
+        <div class="tag">
+          <span class="kicker">Buscador académico</span>
+          <span class="apa">APA 7</span>
+        </div>
+      </div>
+    </div>
+    <div class="acct" id="acct"></div>
+  </header>
+  <div class="rule strong"></div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-main">
+      <p class="eyebrow">Más de 240 millones de artículos</p>
+      <h2 class="display">Busca la literatura. Deja que las <em>citas</em> se ordenen solas.</h2>
+      <p class="lede">Consulta seis bases científicas a la vez y <b>vincula cada referencia a tu biblioteca de Mendeley</b> — sin copiar, pegar ni dar formato a mano.</p>
+
+      <div class="searchwrap" id="sw">
+        <span class="ic"><svg viewBox="0 0 24 24" width="22" height="22"><use href="#d-search"/></svg></span>
+        <input id="query" placeholder="Palabras clave, título, autor — o DOI, PMID, ArXiv ID, ISBN…">
+        <button id="btn-search"><svg viewBox="0 0 24 24" width="18" height="18"><use href="#d-search"/></svg><span>Buscar</span></button>
+      </div>
+
+      <div class="filters">
+        <div class="yr">
+          <span class="yl">Año</span>
+          <input id="year-from" placeholder="Desde" inputmode="numeric" maxlength="4">
+          <span class="dash">—</span>
+          <input id="year-to" placeholder="Hasta" inputmode="numeric" maxlength="4">
+        </div>
+        <label class="oa">
+          <input type="checkbox" id="only-oa">
+          <span class="box"><svg viewBox="0 0 24 24"><use href="#d-check"/></svg></span>
+          Solo acceso abierto
+        </label>
+      </div>
+    </div>
+
+    <!-- FICHA DE BIBLIOTECA -->
+    <aside class="ficha" id="token-zone"></aside>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- SOURCES -->
+  <div class="sources">
+    <span class="slbl">Fuentes indexadas</span>
+    <div class="list">
+      <span>OpenAlex</span><span>Scopus</span><span>Web of Science</span><span>MDPI</span><span>F1000</span><span>DOAJ</span><span>OpenLibrary</span>
+    </div>
   </div>
 
-  <!-- AUTH -->
-  <div class="token-zone" id="token-zone"></div>
+  <div class="rule"></div>
 
-  <!-- SEARCH -->
-  <div class="search-box">
-    <div class="search-row">
-      <input type="text" id="query" placeholder="Palabras clave, título, autor — o DOI, PMID, ArXiv ID, ISBN…">
-      <button class="btn btn-primary" id="btn-search">Buscar</button>
-    </div>
-    <div class="search-filters">
-      <input type="number" id="year-from" placeholder="Desde año" min="1900" max="2099">
-      <span style="color:#aaa">—</span>
-      <input type="number" id="year-to" placeholder="Hasta año" min="1900" max="2099">
-      <label><input type="checkbox" id="only-oa"> Solo acceso abierto</label>
-    </div>
-  </div>
-
-  <!-- UPLOAD -->
-  <div class="upload-box" id="upload-box" style="display:none">
-    <h3>📤 Cita automática (campos Mendeley Cite)</h3>
-    <p class="hint">Sube tu <strong>.docx</strong>. Detectaré citas tipo <code>(Autor, 2024)</code> o <code>Autor et al. (2024)</code>, las cruzaré con tu biblioteca de Mendeley, y envolveré cada coincidencia en un <strong>campo Mendeley Cite</strong> (sombreado gris). Al abrir el .docx en Word con el plugin <strong>Mendeley Cite</strong> instalado, click en <em>"Insert Bibliography"</em> y se genera la lista de referencias automáticamente. Las que no encuentre en tu biblioteca quedarán marcadas en rojo. <strong>Tu formato original (bold, encabezados, listas, tablas) se preserva.</strong></p>
-    <div class="upload-row">
-      <input type="file" id="doc-upload" accept=".docx">
-      <button class="btn btn-primary" id="btn-process" disabled>Procesar documento</button>
-    </div>
-    <div class="upload-status" id="upload-status"></div>
-  </div>
-
-  <!-- CHIPS -->
+  <!-- CHIPS + RESULTS -->
   <div class="chips" id="chips" style="display:none"></div>
-
-  <!-- RESULTS -->
   <div id="results-area">
     <div class="empty">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <p>Busca en más de 240 millones de artículos académicos</p>
-      <p style="font-size:12px;margin-top:4px">Incluye revistas indexadas en Scopus, WoS, MDPI, F1000 y DOAJ</p>
+      <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><use href="#d-search"/></svg>
+      <p class="em-h">Empieza una búsqueda</p>
+      <p class="em-p">Palabras clave, autor, título — o pega un DOI, PMID, ArXiv ID o ISBN.</p>
     </div>
   </div>
+
+  <!-- CITA AUTOMÁTICA -->
+  <section class="blockgap auto" id="upload-box" style="display:none">
+    <div class="auto-info">
+      <span class="badge"><svg viewBox="0 0 24 24" width="13" height="13"><use href="#d-cog"/></svg> Cita automática</span>
+      <h2>Vincula las citas de tu documento</h2>
+      <p>Sube tu <b>.docx</b>. Detectamos las citas tipo <span class="mk">(Autor, 2024)</span> o <span class="mk">Autor et al. (2024)</span> y las cruzamos con tu biblioteca de Mendeley, devolviéndote cada coincidencia en un campo <b>Mendeley&nbsp;Cite</b>.</p>
+      <p>Al abrir el <b>.docx</b> en Word, pulsa <i>Insert Bibliography</i> y se genera la lista de referencias. Las que no estén en tu biblioteca se marcan en rojo. Tu formato original <b>(negritas, encabezados, listas, tablas)</b> se preserva.</p>
+    </div>
+
+    <div>
+      <div class="dropzone" id="dz">
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <div class="tray"><svg viewBox="0 0 24 24"><use href="#d-upload"/></svg></div>
+        <div class="dz-title" id="dzTitle">Arrastra tu documento aquí</div>
+        <div class="dz-sub">Formato Word (.docx) · hasta 25&nbsp;MB</div>
+        <div class="fileinfo" id="fileinfo"></div>
+        <div class="dz-actions">
+          <button class="btn-pick" id="pick">Seleccionar archivo</button>
+          <button class="btn-proc" id="btn-process" disabled><svg viewBox="0 0 24 24"><use href="#d-arrow"/></svg> Procesar documento</button>
+        </div>
+        <input type="file" id="doc-upload" accept=".docx" hidden>
+      </div>
+      <div class="upload-status" id="upload-status"></div>
+    </div>
+  </section>
+
+  <!-- CÓMO FUNCIONA -->
+  <section class="blockgap">
+    <div class="section-head">
+      <span class="n">§ 01</span>
+      <h2>Cómo funciona</h2>
+      <span class="aux">tres pasos</span>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="si"><span class="num">01</span><span class="ico"><svg viewBox="0 0 24 24"><use href="#d-key"/></svg></span></div>
+        <h3>Inicia sesión con Mendeley</h3>
+        <p>Conecta tu cuenta y elige la <b>carpeta activa</b> donde se guardará todo lo que encuentres.</p>
+      </div>
+      <div class="step">
+        <div class="si"><span class="num">02</span><span class="ico"><svg viewBox="0 0 24 24"><use href="#d-book"/></svg></span></div>
+        <h3>Busca y guarda artículos</h3>
+        <p>Filtra por año y acceso abierto. Guarda en tu biblioteca con un clic, listo para citar.</p>
+      </div>
+      <div class="step">
+        <div class="si"><span class="num">03</span><span class="ico"><svg viewBox="0 0 24 24"><use href="#d-quote"/></svg></span></div>
+        <h3>Sube tu <span class="mono">.docx</span> y vincula</h3>
+        <p>Detectamos las citas del documento y las enlazamos con <b>Mendeley Cite</b> automáticamente.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="foot">
+    <div class="stat-foot">
+      <span class="big">240 M+</span>
+      <span class="lbl">artículos académicos indexados</span>
+    </div>
+    <div class="legal">CitasFácil · Mendeley Cite · APA 7</div>
+  </footer>
+
 </div>
 
 <script>
@@ -411,7 +728,7 @@ async function doSearch() {
   const oa = $('only-oa').checked;
 
   const id = detectIdentifier(q);
-  $('results-area').innerHTML = `<div class="loading"><span class="spinner">⏳</span> ${id.label ? `Buscando por ${esc(id.label)}…` : 'Buscando en bases de datos académicas…'}</div>`;
+  $('results-area').innerHTML = `<div class="loading"><span class="spinner">◐</span> &nbsp;${id.label ? `Buscando por ${esc(id.label)}…` : 'Buscando en bases académicas…'}</div>`;
   $('chips').style.display = 'none';
   FILTER = 'all';
   for (const k in SAVE_STATES) delete SAVE_STATES[k];
@@ -425,7 +742,7 @@ async function doSearch() {
         renderResults();
         return;
       }
-      $('results-area').innerHTML = `<div class="empty"><p>No se encontró el documento con ${esc(id.label)} <code>${esc(id.value)}</code>. Verifica el identificador o intenta con palabras clave.</p></div>`;
+      $('results-area').innerHTML = `<div class="empty"><p class="em-h">No se encontró el documento</p><p class="em-p">${esc(id.label)} <code style="font-family:var(--mono)">${esc(id.value)}</code> no está en las bases. Verifica el identificador o intenta con palabras clave.</p></div>`;
       return;
     }
 
@@ -446,7 +763,7 @@ async function doSearch() {
     ALL_RESULTS = (data.results || []).map(parseOpenAlexWork);
     renderResults();
   } catch (e) {
-    $('results-area').innerHTML = `<div class="empty"><p style="color:#c0392b">Error en la búsqueda: ${esc(e.message)}</p></div>`;
+    $('results-area').innerHTML = `<div class="empty"><p class="em-h" style="color:var(--red-700)">Error en la búsqueda</p><p class="em-p">${esc(e.message)}</p></div>`;
   }
 }
 
@@ -465,14 +782,17 @@ function renderChips() {
   if (!ALL_RESULTS.length) { chips.style.display = 'none'; return; }
   chips.style.display = 'flex';
   const items = [
-    ['all',    `Todos · ${ALL_RESULTS.length}`],
-    ['scopus', `Scopus · ${ALL_RESULTS.filter(a => a.inScopus).length}`],
-    ['oa',     `Acceso abierto · ${ALL_RESULTS.filter(a => a.isOA).length}`],
-    ['doaj',   `DOAJ · ${ALL_RESULTS.filter(a => a.inDoaj).length}`],
-    ['mdpi',   `MDPI · ${ALL_RESULTS.filter(a => a.isMDPI).length}`]
+    ['all',    'Todos',          ALL_RESULTS.length],
+    ['scopus', 'Scopus',         ALL_RESULTS.filter(a => a.inScopus).length],
+    ['oa',     'Acceso abierto', ALL_RESULTS.filter(a => a.isOA).length],
+    ['doaj',   'DOAJ',           ALL_RESULTS.filter(a => a.inDoaj).length],
+    ['mdpi',   'MDPI',           ALL_RESULTS.filter(a => a.isMDPI).length]
   ];
-  chips.innerHTML = items.map(([f, lbl]) =>
-    `<button class="chip${FILTER === f ? ' active' : ''}" data-action="filter" data-filter="${f}">${esc(lbl)}</button>`
+  chips.innerHTML = `<span class="ch-lbl">Filtrar</span>` + items.map(([f, lbl, ct]) =>
+    `<button class="ch${FILTER === f ? ' active' : ''}" data-action="filter" data-filter="${f}">
+      <span class="ch-tx">${esc(lbl)}</span>
+      <span class="ch-ct">${ct}</span>
+    </button>`
   ).join('');
 }
 
@@ -481,56 +801,60 @@ function renderResults() {
   const f = getFiltered();
   const area = $('results-area');
   if (!f.length) {
-    area.innerHTML = '<div class="empty"><p>Sin resultados con este filtro.</p></div>';
+    area.innerHTML = '<div class="empty"><p class="em-h">Sin resultados</p><p class="em-p">Ajusta los filtros o prueba otras palabras clave.</p></div>';
     return;
   }
-  area.innerHTML = `<div class="results">${f.map(cardHTML).join('')}</div>`;
+  area.innerHTML = `<div class="results">${f.map((a, i) => cardHTML(a, i)).join('')}</div>`;
 }
 
-function cardHTML(a) {
+function cardHTML(a, idx) {
   const ss = SAVE_STATES[a.id] || '';
   const isExp = EXPANDED === a.id;
   const badges = [];
-  if (a.isBook)     badges.push(['📚 Libro', 'badge-orange']);
-  if (a.inScopus)   badges.push(['Scopus',   'badge-blue']);
-  if (a.inDoaj)     badges.push(['DOAJ',     'badge-green']);
-  if (a.isOA)       badges.push(['OA',       'badge-green']);
-  if (a.inPMC)      badges.push(['PMC',      'badge-green']);
-  if (a.isMDPI)     badges.push(['MDPI',     'badge-orange']);
-  if (a.isF1000)    badges.push(['F1000',    'badge-orange']);
-  if (a.isElsevier) badges.push(['Elsevier', 'badge-blue']);
-  if (a.isSpringer) badges.push(['Springer', 'badge-blue']);
-  if (a.isWiley)    badges.push(['Wiley',    'badge-blue']);
+  if (a.isBook)     badges.push(['Libro',    'book']);
+  if (a.inScopus)   badges.push(['Scopus',   'sci']);
+  if (a.inDoaj)     badges.push(['DOAJ',     'oa']);
+  if (a.isOA)       badges.push(['Acceso abierto', 'oa']);
+  if (a.inPMC)      badges.push(['PMC',      'oa']);
+  if (a.isMDPI)     badges.push(['MDPI',     'pub']);
+  if (a.isF1000)    badges.push(['F1000',    'pub']);
+  if (a.isElsevier) badges.push(['Elsevier', 'pub']);
+  if (a.isSpringer) badges.push(['Springer', 'pub']);
+  if (a.isWiley)    badges.push(['Wiley',    'pub']);
 
   const cit = inText(a.authors, a.year);
   const ref = apa7(a);
 
   let saveBtn;
-  if (!AUTH)             saveBtn = `<button class="btn btn-sm" disabled title="Inicia sesión con Mendeley primero">＋ Guardar en Mendeley</button>`;
-  else if (ss === 'saving') saveBtn = `<button class="btn btn-sm" disabled>⏳ Guardando…</button>`;
-  else if (ss === 'saved')  saveBtn = `<button class="btn btn-sm btn-green" disabled>✓ Guardado en Mendeley</button>`;
-  else if (ss === 'error')  saveBtn = `<button class="btn btn-sm btn-err" data-action="save" data-id="${esc(a.id)}">✕ Error — reintentar</button>`;
-  else                      saveBtn = `<button class="btn btn-sm" data-action="save" data-id="${esc(a.id)}">＋ Guardar en Mendeley</button>`;
+  if (!AUTH)               saveBtn = `<button class="r-act" disabled title="Inicia sesión con Mendeley">＋ Guardar</button>`;
+  else if (ss === 'saving') saveBtn = `<button class="r-act" disabled>Guardando…</button>`;
+  else if (ss === 'saved')  saveBtn = `<button class="r-act ok" disabled>✓ En Mendeley</button>`;
+  else if (ss === 'error')  saveBtn = `<button class="r-act err" data-action="save" data-id="${esc(a.id)}">Reintentar guardado</button>`;
+  else                      saveBtn = `<button class="r-act" data-action="save" data-id="${esc(a.id)}">＋ Guardar en Mendeley</button>`;
 
   const titleHref = a.doi ? 'https://doi.org/' + a.doi : (a.oaUrl || '#');
   const metaAuthors = fmtAuthors(a.authors.slice(0, 3)) + (a.authors.length > 3 ? ' et al.' : '');
+  const containerTxt = a.journal || (a.publisher && a.isBook ? a.publisher : '');
 
-  return `<div class="card${ss === 'saved' ? ' saved' : ''}">
-    <a class="card-title" href="${esc(titleHref)}" target="_blank" rel="noopener">${esc(a.title)} ↗</a>
-    <div class="card-meta">${esc(metaAuthors)}${a.year ? ' · ' + a.year : ''}${a.journal ? ' · ' + esc(a.journal) : (a.publisher && a.isBook ? ' · ' + esc(a.publisher) : '')}</div>
-    <div class="badges">
-      ${badges.map(([lb, cls]) => `<span class="badge ${cls}">${lb}</span>`).join('')}
-      ${a.citations > 0 ? `<span class="badge badge-gray">📊 ${a.citations.toLocaleString()} citas</span>` : ''}
+  return `<article class="rec${ss === 'saved' ? ' saved' : ''}">
+    <div class="rec-num">№ ${String(idx + 1).padStart(2, '0')}</div>
+    <a class="rec-title" href="${esc(titleHref)}" target="_blank" rel="noopener">${esc(a.title)} <span class="ext">↗</span></a>
+    <div class="rec-meta">
+      <span class="rec-auth">${esc(metaAuthors)}</span>${a.year ? `<span class="dot">·</span><span class="rec-year">${a.year}</span>` : ''}${containerTxt ? `<span class="dot">·</span><em class="rec-src">${esc(containerTxt)}</em>` : ''}
     </div>
-    ${a.abstract ? `<p class="abstract${isExp ? ' show' : ''}">${esc(a.abstract)}</p>
-    <button class="btn btn-sm" style="margin-bottom:8px" data-action="toggle-abs" data-id="${esc(a.id)}">${isExp ? '▲ Ocultar' : '▼ Ver resumen'}</button>` : ''}
-    <div class="card-actions">
-      <button class="btn btn-sm btn-cite" data-action="copy" data-text="${esc(cit)}" title="Copiar cita en el texto">${esc(cit)}</button>
-      <button class="btn btn-sm" data-action="copy" data-text="${esc(ref)}" title="Copiar referencia APA 7 completa">📋 Copiar APA 7</button>
+    ${(badges.length || a.citations > 0) ? `<div class="rec-tags">
+      ${badges.map(([lb, cls]) => `<span class="rt rt-${cls}">${lb}</span>`).join('')}
+      ${a.citations > 0 ? `<span class="rt rt-cite">${a.citations.toLocaleString()} citas</span>` : ''}
+    </div>` : ''}
+    ${a.abstract ? `<button class="rec-abs-tog" data-action="toggle-abs" data-id="${esc(a.id)}">${isExp ? '▴ Ocultar resumen' : '▾ Ver resumen'}</button>
+    <p class="rec-abs${isExp ? ' show' : ''}">${esc(a.abstract)}</p>` : ''}
+    <div class="rec-acts">
+      <button class="r-cite" data-action="copy" data-text="${esc(cit)}" title="Copiar cita en el texto">${esc(cit)}</button>
+      <button class="r-act" data-action="copy" data-text="${esc(ref)}" title="Copiar referencia APA 7 completa">Copiar APA 7</button>
       ${saveBtn}
-      ${a.isOA && a.oaUrl ? `<a href="${esc(a.oaUrl)}" target="_blank" rel="noopener"><button class="btn btn-sm">📄 PDF gratis</button></a>` : ''}
+      ${a.isOA && a.oaUrl ? `<a class="r-act" href="${esc(a.oaUrl)}" target="_blank" rel="noopener">PDF gratis ↗</a>` : ''}
     </div>
-  </div>`;
+  </article>`;
 }
 
 // ---------- copy ----------
@@ -632,44 +956,86 @@ async function loadFolders() {
 function folderSelectHTML() {
   const opts = FOLDERS.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   return `
-    <div style="margin-top:10px;padding-top:10px;border-top:1px solid #d0e8d8;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <label style="font-size:12px;color:#1a7a3e;font-weight:600">📁 Carpeta activa:</label>
-      <select id="folder-select" style="padding:5px 8px;border:1px solid #6fcf97;border-radius:6px;background:#fff;font-size:12px;font-family:inherit;max-width:300px">
-        <option value="">— Toda la biblioteca —</option>
+    <div class="row-lbl">
+      <svg viewBox="0 0 24 24" width="13" height="13"><use href="#d-folder"/></svg>
+      Carpeta activa
+    </div>
+    <div class="selectwrap">
+      <select id="folder-select">
+        <option value="">Toda la biblioteca</option>
         ${opts.map(f => `<option value="${esc(f.id)}" ${SELECTED_FOLDER === f.id ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}
       </select>
-      <span style="font-size:11px;color:#888">${FOLDERS.length} carpeta${FOLDERS.length === 1 ? '' : 's'}</span>
-      <div style="flex-basis:100%;font-size:11px;color:#666;margin-top:4px">
-        Se aplica a <strong>guardar artículos</strong> (los nuevos van a esta carpeta) <strong>y a buscar citas</strong> en el .docx subido (solo se buscan ahí).
-      </div>
+      <span class="chev"><svg viewBox="0 0 24 24" width="16" height="16"><use href="#d-chevron"/></svg></span>
+    </div>
+    <div class="meta">
+      <span class="ct"><b>${FOLDERS.length}</b> carpeta${FOLDERS.length === 1 ? '' : 's'} sincronizada${FOLDERS.length === 1 ? '' : 's'}</span>
     </div>`;
 }
 
 // ---------- auth (OAuth) ----------
+function initials(name) {
+  return String(name || '?').split(/\s+/).filter(Boolean).map(w => w[0] || '').slice(0, 2).join('').toUpperCase() || '?';
+}
+
+function renderAccount(authed) {
+  const ac = $('acct');
+  if (!ac) return;
+  if (authed && USER_NAME) {
+    ac.innerHTML = `
+      <div class="who">
+        <div class="lbl">Sesión Mendeley</div>
+        <div class="nm">${esc(USER_NAME)}</div>
+      </div>
+      <div class="av">${esc(initials(USER_NAME))}</div>
+      <button class="out" data-action="logout">Cerrar sesión</button>`;
+  } else {
+    ac.innerHTML = `
+      <button class="btn-login" data-action="login">
+        <span class="ic-m">M</span>
+        <span>Iniciar sesión</span>
+      </button>`;
+  }
+}
+
 function renderTokenZone(status, msg) {
   const zone = $('token-zone');
-  zone.className = 'token-zone' + (status === 'ok' ? ' ok' : status === 'error' ? ' err' : '');
   const ub = $('upload-box');
   if (ub) ub.style.display = (status === 'ok') ? '' : 'none';
   if (status !== 'ok') MENDELEY_LIB = null;
   const procBtn = $('btn-process');
   if (procBtn) procBtn.disabled = !UPLOAD_FILE || status !== 'ok';
+
+  renderAccount(status === 'ok');
+
   if (status === 'ok') {
     zone.innerHTML = `
-      <div class="token-status ok">✓ Sesión iniciada${USER_NAME ? ' como <strong>' + esc(USER_NAME) + '</strong>' : ''}</div>
-      <p style="font-size:12px;color:#1a7a3e;margin-top:4px">Busca artículos abajo, guárdalos en tu biblioteca, o sube un .docx para vincular citas automáticamente.</p>
-      ${folderSelectHTML()}
-      <button class="btn btn-sm" style="margin-top:10px" data-action="logout">Cerrar sesión</button>`;
+      <div class="ficha-in">
+        <div class="ficha-top">
+          <span class="t">Ficha de biblioteca</span>
+          <span class="status"><span class="d"></span>Conectado</span>
+        </div>
+        <div class="borrower">${esc(USER_NAME || 'Tu cuenta')}</div>
+        <div class="org">Biblioteca personal · Mendeley</div>
+        ${folderSelectHTML()}
+        <p class="note">Los artículos que guardes y las citas del <span class="mono">.docx</span> que subas se buscarán dentro de esta carpeta.</p>
+      </div>`;
   } else {
-    const head = status === 'error' ? 'Sesión expirada' : 'Inicia sesión con Mendeley';
+    const statusCls = status === 'error' ? 'err' : 'off';
+    const statusTxt = status === 'error' ? 'Sesión expirada' : 'Sesión inactiva';
     zone.innerHTML = `
-      <div class="token-status ${status === 'error' ? 'err' : 'idle'}">🔐 ${head}</div>
-      <p class="token-hint">Te conectarás directamente con tu cuenta Mendeley. No necesitas pegar tokens ni nada — Mendeley pedirá tu permiso una sola vez.</p>
-      <button class="btn btn-primary" data-action="login" style="display:flex;align-items:center;gap:8px">
-        <span style="display:inline-block;width:16px;height:16px;background:#a6212e;color:#fff;border-radius:3px;font-size:11px;font-weight:700;text-align:center;line-height:16px">M</span>
-        Iniciar sesión con Mendeley
-      </button>
-      ${msg ? `<p style="color:#c0392b;font-size:12px;margin-top:8px">⚠ ${esc(msg)}</p>` : ''}`;
+      <div class="ficha-in">
+        <div class="ficha-top">
+          <span class="t">Ficha de biblioteca</span>
+          <span class="status ${statusCls}"><span class="d"></span>${statusTxt}</span>
+        </div>
+        <p class="ficha-help">Conecta tu cuenta para guardar artículos, elegir <b>carpeta activa</b> y vincular citas en tu documento.</p>
+        <button class="btn-login" data-action="login">
+          <span class="ic-m">M</span>
+          <span>Iniciar sesión con Mendeley</span>
+        </button>
+        <p class="note">Te redirigiremos a Mendeley para autorizar el acceso. No necesitas pegar tokens.</p>
+        ${msg ? `<p class="err-msg">⚠ ${esc(msg)}</p>` : ''}
+      </div>`;
   }
 }
 
@@ -1130,39 +1496,37 @@ async function processDocument() {
     const diagHTML = diagnostic.map(d => {
       const cand = d.candidates.length ? `
         <div class="diag-candidates">
-          <div style="font-size:10px;color:#666;margin-bottom:2px">Candidatos cercanos en tu Mendeley:</div>
+          <div class="diag-cand-h">Candidatos cercanos en tu biblioteca</div>
           ${d.candidates.map(c => {
             const authNames = (c.authors || []).slice(0, 3).map(a => esc(a.last_name || '')).join(', ');
-            return `<div class="diag-cand">• <b>${esc(authNames || '?')}</b> (${c.year || '?'}) — ${esc((c.title || '').slice(0, 90))}${(c.title || '').length > 90 ? '…' : ''}</div>`;
+            return `<div class="diag-cand">— <b>${esc(authNames || '?')}</b> (${c.year || '?'}) · ${esc((c.title || '').slice(0, 100))}${(c.title || '').length > 100 ? '…' : ''}</div>`;
           }).join('')}
-        </div>` : '<div class="diag-candidates"><div style="font-size:10px;color:#999">Sin candidatos cercanos (no hay docs en Mendeley con apellido o año similar).</div></div>';
+        </div>` : `<div class="diag-candidates"><div class="diag-cand" style="color:var(--ink-400)">Sin candidatos cercanos en tu biblioteca.</div></div>`;
       if (d.status === 'matched') {
         const auth = (d.hit.authors || []).slice(0, 3).map(a => esc(a.last_name || '')).join(', ');
-        return `<div class="diag-row matched">
-          <span class="diag-status ok">✓ VINCULADA</span><span class="diag-cite">${esc(d.citeText)}</span>
-          <div class="diag-hit">→ ${esc(auth || '?')} (${d.hit.year || '?'}) — ${esc((d.hit.title || '').slice(0, 100))}</div>
+        return `<div class="diag-row">
+          <span class="diag-status ok">Vinculada</span><span class="diag-cite">${esc(d.citeText)}</span>
+          <div class="diag-hit">→ <b>${esc(auth || '?')}</b> (${d.hit.year || '?'}) · ${esc((d.hit.title || '').slice(0, 110))}</div>
         </div>`;
       } else {
-        return `<div class="diag-row missed">
-          <span class="diag-status bad">✕ NO ENCONTRADA</span><span class="diag-cite">${esc(d.citeText)}</span>
-          <div style="font-size:10px;color:#666;margin-top:2px">Buscado: apellido <code>${esc(extractFirstAuthor(d.item.authorPart))}</code>, año <code>${esc(d.item.year)}</code></div>
+        return `<div class="diag-row">
+          <span class="diag-status bad">No encontrada</span><span class="diag-cite">${esc(d.citeText)}</span>
+          <div class="diag-search">Buscado: apellido <code>${esc(extractFirstAuthor(d.item.authorPart))}</code> · año <code>${esc(d.item.year)}</code></div>
           ${cand}
         </div>`;
       }
     }).join('');
 
     statusEl.innerHTML = `
-      ✅ <strong>Documento generado y descargado.</strong>
+      <div class="ux-head">Documento generado y descargado</div>
       <div class="stat-row">
-        <span class="stat total">Total: ${totalCites}</span>
-        <span class="stat found">Vinculadas: ${matchedCount}</span>
-        <span class="stat miss">No encontradas: ${totalCites - matchedCount}</span>
+        <div class="stat total"><span class="stat-n">${totalCites}</span><span class="stat-lbl">Citas detectadas</span></div>
+        <div class="stat found"><span class="stat-n">${matchedCount}</span><span class="stat-lbl">Vinculadas a Mendeley</span></div>
+        <div class="stat miss"><span class="stat-n">${totalCites - matchedCount}</span><span class="stat-lbl">No encontradas</span></div>
       </div>
-      <div style="margin-top:8px;font-size:11px;color:#444">
-        <strong>Cómo usarlo en Word:</strong> Abre el .docx con el plugin <strong>Mendeley Cite</strong>. Las citas vinculadas tienen sombreado gris. Click en <em>"Insert Bibliography"</em> al final del documento para generar la lista de referencias.
-      </div>
+      <p class="ux-help"><b>Cómo usarlo en Word:</b> abre el <span class="mono" style="font-family:var(--mono);font-size:13px">.docx</span> con el plugin <b>Mendeley Cite</b>. Las citas vinculadas se ven con sombreado gris al seleccionarlas. Al final del documento, ejecuta <em>Insert Bibliography</em> para generar la lista de referencias automáticamente.</p>
       ${diagnostic.length ? `<div class="diag">
-        <div class="diag-head">Diagnóstico cita por cita — revisa las no encontradas y sus candidatos cercanos</div>
+        <div class="diag-head">Diagnóstico cita por cita</div>
         ${diagHTML}
       </div>` : ''}`;
   } catch (e) {
@@ -1177,17 +1541,50 @@ async function processDocument() {
 function setupUploadHandlers() {
   const input = $('doc-upload');
   const btn = $('btn-process');
-  input.addEventListener('change', () => {
-    UPLOAD_FILE = input.files[0] || null;
+  const pick = $('pick');
+  const dz = $('dz');
+  const fileinfo = $('fileinfo');
+  const dzTitle = $('dzTitle');
+
+  function applyFile(file) {
+    UPLOAD_FILE = file || null;
+    if (UPLOAD_FILE) {
+      dz.classList.add('has');
+      dzTitle.textContent = 'Documento listo para procesar';
+      fileinfo.innerHTML = 'Archivo: <b>' + esc(UPLOAD_FILE.name) + '</b>';
+      fileinfo.classList.add('show');
+    } else {
+      dz.classList.remove('has');
+      dzTitle.textContent = 'Arrastra tu documento aquí';
+      fileinfo.classList.remove('show');
+      fileinfo.innerHTML = '';
+    }
     btn.disabled = !UPLOAD_FILE || !AUTH;
     if (UPLOAD_FILE && !AUTH) {
-      $('upload-status').className = 'upload-status err';
-      $('upload-status').textContent = '⚠ Primero inicia sesión con Mendeley arriba.';
+      const us = $('upload-status');
+      us.className = 'upload-status err';
+      us.textContent = '⚠ Primero inicia sesión con Mendeley arriba.';
     } else {
       $('upload-status').textContent = '';
+      $('upload-status').className = 'upload-status';
     }
-  });
+  }
+
+  input.addEventListener('change', () => applyFile(input.files[0]));
+  if (pick) pick.addEventListener('click', e => { e.preventDefault(); input.click(); });
   btn.addEventListener('click', processDocument);
+
+  if (dz) {
+    ['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, e => {
+      e.preventDefault(); dz.classList.add('has');
+    }));
+    dz.addEventListener('dragleave', () => { if (!UPLOAD_FILE) dz.classList.remove('has'); });
+    dz.addEventListener('drop', e => {
+      e.preventDefault();
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f && /\.docx$/i.test(f.name)) applyFile(f);
+    });
+  }
 }
 
 function updateUploadBoxVisibility() {
@@ -1228,6 +1625,20 @@ document.addEventListener('change', e => {
 
 $('btn-search').addEventListener('click', doSearch);
 setupUploadHandlers();
+
+// search visual focus + year digit-only
+(function () {
+  const sw = $('sw'), q = $('query');
+  if (sw && q) {
+    q.addEventListener('focus', () => sw.classList.add('focus'));
+    q.addEventListener('blur', () => sw.classList.remove('focus'));
+  }
+  ['year-from', 'year-to'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, '').slice(0, 4); });
+  });
+})();
 
 // ---------- init ----------
 (async function init() {
